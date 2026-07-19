@@ -1,0 +1,48 @@
+{
+  "name": "@carbonenginejs/runtime-audio",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Headless audio graph and data contracts for CarbonEngineJS (data-only Carbon Aud* classes, importable alone via ./trinity) plus the CjsAudio* WebAudio realization.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./trinity": "./src/trinity/index.js",
+    "./audioMetadata": "./src/audioMetadata.js"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build:npm": "node scripts/build_npm.js && rollup -c",
+    "generate": "node scripts/generate_trinity.js",
+    "demo": "node scripts/serve_demo.js",
+    "check:text": "node scripts/check_repository_text.js",
+    "proof:decorators": "node scripts/proof_decorator_transform.js",
+    "test": "npm run build:npm && node --test test/*.test.js",
+    "lint": "npm run build:npm && node --check npm/dist/index.js && node --check test/audio-classes.test.js && node --check test/audio-behavior.test.js && node --check test/audio-culling.test.js && node --check test/audio-system.test.js && node --check test/audio-backend-isolation.test.js && node --check test/trinity-subpath.test.js && node --check test/music-engine.test.js && node --check scripts/build_npm.js && node --check scripts/build_music_graph.js && node --check scripts/build_demo_library.js && node --check scripts/check_repository_text.js && node --check scripts/generate_trinity.js && node --check scripts/proof_decorator_transform.js && node --check demo/demo.js && node --check rollup.config.mjs",
+    "check": "npm run lint && npm test && npm run proof:decorators && npm run check:text"
+  },
+  "keywords": [
+    "carbonenginejs",
+    "audio",
+    "wwise",
+    "graph",
+    "headless"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@rollup/plugin-babel": "^7.1.0",
+    "rollup": "^4.62.2"
+  },
+  "dependencies": {
+    "@carbonenginejs/core-math": "file:../core-math",
+    "@carbonenginejs/core-types": "file:../core-types",
+    "@carbonenginejs/runtime-const": "file:../runtime-const"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

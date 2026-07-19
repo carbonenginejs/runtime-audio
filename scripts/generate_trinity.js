@@ -1,0 +1,247 @@
+// Generates the data-only Carbon audio classes owned by runtime-audio
+// (see src/trinity/README.md and .agents/CLASS-OWNERSHIP.md) from the
+// format-carbon schema, reusing the same classTool API as
+// runtime-trinity/scripts/regenerate_generated.js. trinityAudio is already
+// hand-owned in src/trinity/trinityAudio and is not re-emitted here.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { deriveExpectedFields, loadSchemaDoc, renderClassFile, schemaBaseClassForDoc } from "../../format-carbon/src/core/classTool.js";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.resolve(root, "..");
+const schemaRoot = path.join(workspaceRoot, "format-carbon", "src", "schema");
+const outRoot = path.join(root, "src", "trinity");
+const GENERATED_FAMILIES = ["audio", "trinityAudioApi"];
+// Hand-owned files are never (re-)generated or deleted; behavior ports live
+// there (see each file's header). trinityAudio is an entirely hand-owned
+// family; the audio-family entries below were promoted from generator output.
+const HAND_OWNED_CLASSES = new Set([
+  "AudEmitter",
+  "AudEventCurve",
+  "AudioCurveSetDriver",
+  "AudManager",
+  "StretchAudio",
+  "AudGameObjResource",
+  "AudListener",
+  "AudStaticDataRepository",
+  "SoundPrioritization",
+  "Tr2AudioStretchAuto",
+  "Tr2AudioStretchBase"
+]);
+
+// Port-review outcomes 2026-07-18 (fidelity + authored-value review, C++
+// verified; see src/trinity/README.md "Port review"):
+// - TRIMMED_CLASSES: native Wwise/OS plumbing, editor tooling, or runtime/
+//   debug telemetry with no data-graph value (verdicts cite the C++ Blue
+//   exposure: attribute-less, interface-only, or not Blue at all).
+const TRIMMED_CLASSES = new Set([
+  "AudActionLogCB",
+  "AudActionRecordExecuteActionOnPlayingID",
+  "AudActionRecordPostEvent",
+  "AudActionRecordSetRTPC",
+  "AudActionRecordSetState",
+  "AudActionRecordSetSwitch",
+  "AudPathResolver",
+  "AudPosition",
+  "AudioInputMgr",
+  "FileHelpers",
+  "IAudioInputMgr",
+  "LowLevelIOHook",
+  "MonitoredParameterInfo",
+  "SoundBankInfo",
+  "SoundPrioritization",
+  "StringUtils",
+  "WaapiManager"
+]);
+
+// - FIELD_STRIP_CLASSES: Blue exposure has zero MAP_ATTRIBUTE, so the
+//   reflection scan fell back to raw header members (artifacts, e.g. the
+//   nested EventData struct). Blue-exposed methods are kept.
+const FIELD_STRIP_CLASSES = new Set(["AudStaticDataRepository"]);
+
+// - METHOD_ADDITIONS: Blue-exposed methods the reflection scan missed
+//   (AudManager GetState -> GetStateValue, AudManager_Blue.cpp:116-121).
+const METHOD_ADDITIONS = new Map([
+  ["AudManager", [
+    { name: "GetState", blueName: "GetState", target: "GetStateValue", declaredOn: "AudManager", macro: "MAP_METHOD_AND_WRAP", description: "" }
+  ]]
+]);
+
+// - AUTHORED_FIELD_ADDITIONS: authored-value promotions per the kb.md
+//   authored-value rule - members Blue hides (or routes through Initialize/
+//   UpdateSettings params) that are authored data needed to rebuild state.
+//   The divergence is an implementation decision, so each promoted field is
+//   stamped @impl.adapted + @impl.reason(...) (field-capable impl decorators,
+//   core-types 2026-07-18) in addition to the [AUTHORED] JSDoc tag.
+//   m_position: set from Initialize(name, prefix, position) at
+//   AudGameObjResource.cpp:436. m_settings: supplied via
+//   AudManager::UpdateSettings before init.
+const AUTHORED_FIELD_ADDITIONS = new Map([
+  ["AudGameObjResource", [
+    {
+      name: "position", member: "m_position", cppType: "Vector3", kind: "vec3",
+      flags: ["AUTHORED"], io: "persist", notify: false,
+      reason: "Carbon routes this through Initialize(name, prefix, position) outside Blue serialization; CarbonEngineJS persists it for values interchange.",
+      default: { determinate: true, value: [0, 0, 0], source: "authored-value promotion (Initialize position param)" }
+    }
+  ]],
+  ["AudManager", [
+    {
+      name: "settings", member: "m_settings", cppType: "AudSettingsPtr", kind: "model", typeArg: "AudSettings",
+      flags: ["AUTHORED"], io: "persist", notify: false,
+      reason: "Carbon supplies this via UpdateSettings() outside Blue serialization; CarbonEngineJS persists it for values interchange.",
+      default: { determinate: true, value: null, source: "authored-value promotion (UpdateSettings config)" }
+    }
+  ]]
+]);
+
+function applyAuthoredImplMarkers(text, additions) {
+  let result = text;
+  for (const field of additions) {
+    const jsdocLine = `  /** ${field.member} (${field.cppType}) [AUTHORED] */`;
+    if (!result.includes(jsdocLine)) {
+      throw new Error(`Authored field JSDoc line not found for ${field.name}`);
+    }
+    result = result.replace(jsdocLine, `${jsdocLine}\n  @impl.adapted\n  @impl.reason("${field.reason}")`);
+  }
+  if (!/import \{[^}]*\bimpl\b[^}]*\} from "@carbonenginejs\/core-types\/schema"/.test(result)) {
+    result = result.replace(/import \{ ([^}]*) \} from "@carbonenginejs\/core-types\/schema";/, (match, names) => {
+      const list = [...new Set([...names.split(",").map(item => item.trim()), "impl"])].sort();
+      return `import { ${list.join(", ")} } from "@carbonenginejs/core-types/schema";`;
+    });
+  }
+  return result;
+}
+
+function walkJson(dir) {
+  return fs.readdirSync(dir)
+    .filter(name => name.endsWith(".json") && name !== "index.json")
+    .sort()
+    .map(name => path.join(dir, name));
+}
+
+function classNameFor(doc, file) {
+  return doc.blueClass || doc.cppClass || doc.black?.className || path.basename(file, ".json");
+}
+
+function writeFile(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, "utf8");
+}
+
+const summary = { generated: 0, skipped: [], errors: [], families: {} };
+const prepared = [];
+const emittable = new Set();
+
+for (const family of GENERATED_FAMILIES) {
+  const familyDir = path.join(schemaRoot, family);
+  if (!fs.existsSync(familyDir)) {
+    throw new Error(`Missing schema family directory: ${familyDir}`);
+  }
+  for (const file of walkJson(familyDir)) {
+    const { doc, schemaRoot: loadedRoot, family: loadedFamily } = loadSchemaDoc({ schema: file });
+    const className = classNameFor(doc, file);
+    if (HAND_OWNED_CLASSES.has(className)) {
+      summary.skipped.push({ family, className, reason: "hand-owned source exists" });
+      continue;
+    }
+    if (TRIMMED_CLASSES.has(className)) {
+      summary.skipped.push({ family, className, reason: "trimmed by 2026-07-18 port review (no data-graph value)" });
+      continue;
+    }
+    const expected = deriveExpectedFields(doc, { schemaRoot: loadedRoot, family: loadedFamily });
+    if (FIELD_STRIP_CLASSES.has(className)) {
+      expected.fields = [];
+    }
+    for (const method of METHOD_ADDITIONS.get(className) || []) {
+      if (!expected.methods.some(existing => existing.name === method.name)) {
+        expected.methods.push(method);
+      }
+    }
+    for (const field of AUTHORED_FIELD_ADDITIONS.get(className) || []) {
+      if (!expected.fields.some(existing => existing.name === field.name)) {
+        expected.fields.push(field);
+      }
+    }
+    if (expected.fallback && !expected.fields.length && !expected.methods.length) {
+      summary.skipped.push({ family, className, reason: expected.fallback.reason });
+      continue;
+    }
+    prepared.push({ family, className, file, doc, loadedRoot, loadedFamily, expected });
+    emittable.add(className);
+  }
+}
+
+for (const family of GENERATED_FAMILIES) {
+  const familyDir = path.join(outRoot, family);
+  if (!fs.existsSync(familyDir)) {
+    continue;
+  }
+  for (const name of fs.readdirSync(familyDir)) {
+    if (!name.endsWith(".js") || HAND_OWNED_CLASSES.has(path.basename(name, ".js"))) {
+      continue;
+    }
+    fs.rmSync(path.join(familyDir, name));
+  }
+}
+
+const familyClasses = new Map();
+
+for (const family of GENERATED_FAMILIES) {
+  const familyDir = path.join(outRoot, family);
+  if (!fs.existsSync(familyDir)) {
+    continue;
+  }
+  for (const name of fs.readdirSync(familyDir)) {
+    const className = path.basename(name, ".js");
+    if (name.endsWith(".js") && HAND_OWNED_CLASSES.has(className)) {
+      if (!familyClasses.has(family)) {
+        familyClasses.set(family, []);
+      }
+      familyClasses.get(family).push(className);
+    }
+  }
+}
+
+for (const item of prepared) {
+  const { family, className, doc, loadedRoot, loadedFamily, expected } = item;
+  try {
+    const baseClass = schemaBaseClassForDoc(doc, { schemaRoot: loadedRoot, family: loadedFamily });
+    const extendsOptions = baseClass && emittable.has(baseClass)
+      ? { extendsClass: baseClass, extendsImport: `./${baseClass}.js` }
+      : {};
+    if (!extendsOptions.extendsClass) {
+      expected.meta.baseClass = "CjsModel";
+    }
+    let text = renderClassFile(expected, {
+      doc: { ...doc, family },
+      js: true,
+      ...extendsOptions
+    });
+    const authoredFields = AUTHORED_FIELD_ADDITIONS.get(className);
+    if (authoredFields) {
+      text = applyAuthoredImplMarkers(text, authoredFields);
+    }
+    writeFile(path.join(outRoot, family, `${className}.js`), text);
+    if (!familyClasses.has(family)) {
+      familyClasses.set(family, []);
+    }
+    familyClasses.get(family).push(className);
+    summary.generated++;
+    summary.families[family] = (summary.families[family] || 0) + 1;
+  } catch (error) {
+    summary.errors.push({ family, className, error: error.message });
+  }
+}
+
+for (const [family, classes] of familyClasses) {
+  const lines = classes.sort().map(name => `export * from "./${name}.js";`);
+  writeFile(path.join(outRoot, family, "index.js"), `${lines.join("\n")}\n`);
+}
+
+if (summary.errors.length) {
+  console.error(JSON.stringify(summary, null, 2));
+  process.exit(1);
+}
+console.log(JSON.stringify(summary, null, 2));

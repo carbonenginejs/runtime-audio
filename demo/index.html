@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>runtime-audio demo — real library, synthesized sound, no Trinity</title>
+<style>
+  body { font: 13px/1.5 system-ui, "Segoe UI", sans-serif; margin: 0; display: grid; grid-template-columns: 340px 1fr; height: 100vh; background: #0b0e14; color: #cdd6e4; }
+  #panel { padding: 14px; overflow-y: auto; border-right: 1px solid #1e2633; }
+  .hint { color: #7c8797; margin: 0 0 10px; }
+  #help { list-style: none; margin: 0; padding: 0; color: #7c8797; font-size: 12px; }
+  #help li { padding: 1px 0; }
+  #help li::before { content: "– "; color: #4b5563; }
+  button { background: #1d4ed8; color: #fff; border: 0; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  button:disabled { background: #334155; cursor: default; }
+  input[type=search] { width: 100%; box-sizing: border-box; padding: 7px; margin: 0 0 6px; background: #131a26; color: #cdd6e4; border: 1px solid #2a3648; border-radius: 6px; }
+  select { width: 100%; box-sizing: border-box; padding: 5px 7px; background: #131a26; color: #cdd6e4; border: 1px solid #2a3648; border-radius: 6px; font-size: 12px; }
+  #events { list-style: none; margin: 0; padding: 0; }
+  #events li { padding: 5px 7px; border-radius: 5px; cursor: pointer; display: grid; grid-template-columns: 1fr 68px 52px; gap: 8px; align-items: baseline; }
+  #events li:hover { background: #182234; }
+  #events li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #events .kind, #events .radius { color: #64748b; white-space: nowrap; text-align: right; font-size: 11px; }
+  #stage { position: relative; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #hud { position: absolute; top: 10px; left: 12px; color: #94a3b8; }
+  #musicHud { position: absolute; top: 30px; left: 12px; color: #a78bfa; white-space: nowrap; }
+  #controls { position: absolute; top: 10px; right: 12px; width: 252px; display: flex; flex-direction: column; gap: 10px; }
+  .card { background: rgba(13,18,28,0.92); border: 1px solid #2a3648; border-radius: 8px; padding: 10px 12px; }
+  .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c8797; margin: 0 0 6px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  #tip { position: absolute; display: none; background: rgba(13,18,28,0.94); border: 1px solid #2a3648;
+         border-radius: 6px; padding: 8px 10px; font-size: 11px; line-height: 1.55; color: #cdd6e4;
+         pointer-events: none; white-space: pre; z-index: 5; }
+  #tip .tipTitle { color: #7ea2d8; }
+  label { color: #94a3b8; }
+  #mixTable { margin: 0; border-collapse: collapse; }
+  #mixTable td { padding: 2px 8px 2px 0; color: #94a3b8; white-space: nowrap; font-size: 12px; }
+  #mixTable input[type=range] { width: 130px; vertical-align: middle; }
+  .loop { color: #34d399; } .vital { color: #f59e0b; } .flat { color: #64748b; }
+</style>
+</head>
+<body>
+<div id="panel">
+  <input id="search" type="search" placeholder="filter effects… (try: engine, warp, artillery)">
+  <ul id="events"></ul>
+</div>
+<div id="stage">
+  <canvas id="canvas"></canvas>
+  <div id="hud"></div>
+  <div id="musicHud"></div>
+  <div id="tip"></div>
+  <div id="controls">
+    <div class="card">
+      <h2>audio <input id="enable" type="checkbox" title="enable audio"></h2>
+      <table id="mixTable">
+        <tr><td>demo</td><td><input id="demoToggle" type="checkbox" title="load the demo scene"></td></tr>
+        <tr><td>max awake</td><td><input id="maxAwake" type="range" min="1" max="75" value="6"></td></tr>
+        <tr><td>sfx volume</td><td><input id="sfxVol" type="range" min="0" max="100" value="100"></td></tr>
+        <tr><td>music volume</td><td><input id="musicVol" type="range" min="0" max="100" value="10"></td></tr>
+        <tr><td>ring opacity</td><td><input id="ringAlpha" type="range" min="0" max="60" value="10"></td></tr>
+        <tr><td>world scale</td><td><input id="worldScale" type="range" min="25" max="400" value="100"></td></tr>
+        <tr><td>cull rings</td><td><input id="cullRings" type="checkbox"></td></tr>
+      </table>
+    </div>
+    <div class="card" id="music" style="display:none">
+      <h2>dynamic music <input id="musicToggle" type="checkbox" title="play dynamic music"></h2>
+      <p class="hint" style="margin:0 0 6px">the real EVE music graph; moods steer the switch container</p>
+      <select id="moods" title="mood"></select>
+    </div>
+    <div class="card">
+      <h2>runtime-audio demo</h2>
+      <ul id="help">
+        <li>click a panel item to play it</li>
+        <li>drag the listener or an emitter to move it</li>
+        <li>right-click an emitter to remove it</li>
+        <li>wheel over an emitter to scale it</li>
+        <li>wheel anywhere else to zoom</li>
+        <li><span style="color:#cbd5e1">white ring</span> hearing range</li>
+        <li><span style="color:#3b82f6">blue ring</span> engine cull range</li>
+        <li><span style="color:#34d399">●</span> placed · <span style="color:#fbbf24">●</span> demo · <span style="color:#475569">●</span> culled</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "@carbonenginejs/core-types/schema": "/core-types/src/schema/index.js",
+    "@carbonenginejs/core-types/model": "/core-types/src/model/index.js",
+    "@carbonenginejs/core-math/vec3": "/core-math/src/vec3.js",
+    "@carbonenginejs/runtime-const/graphics": "/runtime-const/src/graphics/index.js",
+    "gl-matrix/": "/core-math/node_modules/gl-matrix/",
+    "@carbonenginejs/runtime-resource/formats/wem": "/runtime-resource/npm/dist/formats/wem/index.js"
+  }
+}
+</script>
+<script type="module" src="/runtime-audio/demo/demo.js"></script>
+</body>
+</html>
