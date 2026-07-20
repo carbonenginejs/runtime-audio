@@ -29,6 +29,36 @@ provenance rules: [`src/trinity/README.md`](./src/trinity/README.md).
   manager: banks are never tracked, posts return 0 and queue emitter-side for
   replay on a later successful Enable's wake pass.
 
+## Encoded delivery and long-file memory
+
+Runtime-audio is source-neutral. Its injected loaders may use ordinary static
+files, an application provider, a local game-file/cache provider, or an
+optional tools-core HTTP service. A live tools-core process is not a runtime
+requirement.
+
+The current realization is buffer-backed, not streaming. Both
+`CjsAudioBackend.loadBuffer` and `CjsMusicEngine.loadMedia` ultimately expect a
+complete WebAudio `AudioBuffer`; the music engine also retains its resolved
+buffer promise by source ID. `decodeAudioData` expands the complete encoded
+item into PCM memory before playback. At 48 kHz stereo float32 this is roughly
+384 KB per second, 23 MB per minute, or 230 MB for ten minutes, before browser,
+node-graph, encoded-byte, and duplicate-buffer overhead.
+
+Treat this path as suitable for short effects. Encoded artifact caching and
+decoded `AudioBuffer` retention are separate policies, and callers must be
+able to release inactive decoded buffers rather than accumulating the entire
+catalog. Long music and ambience require a future explicit streaming backend;
+the name `loadMedia` must not be interpreted as evidence that streaming exists
+today.
+
+For embedded BNK media, the upstream online source cannot currently be assumed
+to honour byte-range requests. Online deployment therefore needs each required
+media item materialized as an independently retrievable artifact somewhere;
+tools-core can generate those artifacts, but they may be hosted as ordinary
+static files and do not have to be served by tools-core. A local-tool workflow
+can instead copy or extract the user's existing game files into its local cache,
+which avoids any extra online media service.
+
 ## Carbon field-name mapping (for SOF/consumers)
 
 The schema keeps Carbon's real names. The commonly wanted emitter values map:

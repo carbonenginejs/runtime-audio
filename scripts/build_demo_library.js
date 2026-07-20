@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const orgRoot = path.resolve(root, "..");
@@ -52,8 +53,14 @@ const demoLibrary = {
 };
 
 const outPath = path.join(root, "demo", "audio-library.json");
-fs.writeFileSync(outPath, JSON.stringify(demoLibrary));
-console.log("wrote", outPath, `${(fs.statSync(outPath).size / 1048576).toFixed(2)} MB`);
+const json = Buffer.from(JSON.stringify(demoLibrary));
+const gzipPath = `${outPath}.gz`;
+const gzip = gzipSync(json, { level: 9, mtime: 0 });
+
+fs.writeFileSync(outPath, json);
+fs.writeFileSync(gzipPath, gzip);
+console.log("wrote", outPath, `${(json.byteLength / 1048576).toFixed(2)} MB`);
+console.log("wrote", gzipPath, `${(gzip.byteLength / 1048576).toFixed(2)} MB`);
 
 // Safety: the committed file must carry no optional enrichment keys.
 const text = fs.readFileSync(outPath, "utf8");

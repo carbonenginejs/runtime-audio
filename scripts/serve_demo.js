@@ -16,6 +16,7 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".gz": "application/gzip",
   ".map": "application/json; charset=utf-8",
   ".otf": "font/otf"
 };

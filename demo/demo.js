@@ -90,10 +90,16 @@ class AudioLibrary
      */
     static async Load()
     {
-        const raw = await fetch("/.tmp/ccp_3435006_audio_v1.json")
-            .then(response => response.ok ? response.json() : null)
-            .catch(() => null)
-            ?? await (await fetch(new URL("./audio-library.json", import.meta.url))).json();
+        const raw = await FetchLibraryJson("/.tmp/ccp_3435006_audio_v1.json.gz")
+            ?? await FetchLibraryJson("/.tmp/ccp_3435006_audio_v1.json")
+            ?? await FetchLibraryJson(new URL("./audio-library.json.gz", import.meta.url))
+            ?? await FetchLibraryJson(new URL("./audio-library.json", import.meta.url));
+
+        if (!raw)
+        {
+            throw new Error("No generated audio library artifact is available");
+        }
+
         return new AudioLibrary(raw);
     }
 
@@ -178,6 +184,34 @@ class AudioLibrary
         return { radius, anyLoop, anyPlayable };
     }
 
+}
+
+async function FetchLibraryJson(url)
+{
+    const response = await fetch(url).catch(() => null);
+
+    if (!response?.ok)
+    {
+        return null;
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+
+    if (bytes[0] !== 0x1f || bytes[1] !== 0x8b)
+    {
+        return JSON.parse(new TextDecoder().decode(bytes));
+    }
+
+    if (typeof DecompressionStream !== "function")
+    {
+        throw new Error("This browser cannot decode generated gzip library assets");
+    }
+
+    const stream = new Blob([ bytes ])
+        .stream()
+        .pipeThrough(new DecompressionStream("gzip"));
+
+    return new Response(stream).json();
 }
 
 
