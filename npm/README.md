@@ -1,117 +1,49 @@
 # @carbonenginejs/runtime-audio
 
-Headless audio graph and data contracts for CarbonEngineJS. This package owns
-the Carbon audio domain (schema families `audio`, `trinityAudio`,
-`trinityAudioApi` — see `../.agents/CLASS-OWNERSHIP.md`) and ships it as a
-**data-only graph**: hydrating, inspecting, and serializing audio state never
-requires an AudioContext, WebAudio, Wwise, or a graphics engine.
+Complete CarbonEngineJS audio domain with a graph-only `./trinity` entry and
+optional Web Audio realization.
 
-Feature/status map: [`AUDIO-MAP.md`](./AUDIO-MAP.md). Ownership brief and
-provenance rules: [`src/trinity/README.md`](./src/trinity/README.md).
+Use this package to hydrate and operate Carbon audio objects, connect them to
+an application-supplied audio context and media loader, or schedule authored
+interactive music. Audio acquisition and conversion remain with the host,
+`@carbonenginejs/runtime-resource`, and Node tooling.
 
-## Boundary
+## Install
 
-- `src/trinity/` — **real Carbon classes**, generated from the format-carbon
-  Blue reflection schema (`scripts/generate_trinity.js`) or hand-owned
-  (`trinityAudio/`). Faithful to Carbon: fields mirror Blue attributes; the
-  lifecycle/bank/emitter behavior is ported (2026-07-18 behavior pass), and
-  remaining Carbon methods are `@carbon.method` + `@impl.notImplemented` stubs.
-  This layer is importable on its own via the supported graph-only entry
-  `@carbonenginejs/runtime-audio/trinity` — no backend module is evaluated and
-  no AudioContext is touched.
-- Outside `src/trinity/` — the `CjsAudio*` WebAudio realization implementing
-  the `ICjsAudioSystem` contract: `CjsAudioSystem` (composition root wiring
-  the three `AudGameObjResource` seams) + `CjsAudioBackend` (WebAudio node
-  graph: per-source gain → emitter gain → HRTF panner → master). It consumes
-  the data graph and an injected `loadBuffer` delegate (the app supplies
-  runtime-resource's wem→ogg→PCM chain). Headless — no context supplied —
-  `Enable` fails like Carbon's Init failure and the manager stays a true null
-  manager: banks are never tracked, posts return 0 and queue emitter-side for
-  replay on a later successful Enable's wake pass.
-
-## Encoded delivery and long-file memory
-
-Runtime-audio is source-neutral. Its injected loaders may use ordinary static
-files, an application provider, a local game-file/cache provider, or an
-optional tools-core HTTP service. A live tools-core process is not a runtime
-requirement.
-
-The current realization is buffer-backed, not streaming. Both
-`CjsAudioBackend.loadBuffer` and `CjsMusicEngine.loadMedia` ultimately expect a
-complete WebAudio `AudioBuffer`; the music engine also retains its resolved
-buffer promise by source ID. `decodeAudioData` expands the complete encoded
-item into PCM memory before playback. At 48 kHz stereo float32 this is roughly
-384 KB per second, 23 MB per minute, or 230 MB for ten minutes, before browser,
-node-graph, encoded-byte, and duplicate-buffer overhead.
-
-Treat this path as suitable for short effects. Encoded artifact caching and
-decoded `AudioBuffer` retention are separate policies, and callers must be
-able to release inactive decoded buffers rather than accumulating the entire
-catalog. Long music and ambience require a future explicit streaming backend;
-the name `loadMedia` must not be interpreted as evidence that streaming exists
-today.
-
-For embedded BNK media, the upstream online source cannot currently be assumed
-to honour byte-range requests. Online deployment therefore needs each required
-media item materialized as an independently retrievable artifact somewhere;
-tools-core can generate those artifacts, but they may be hosted as ordinary
-static files and do not have to be served by tools-core. A local-tool workflow
-can instead copy or extract the user's existing game files into its local cache,
-which avoids any extra online media service.
-
-## Carbon field-name mapping (for SOF/consumers)
-
-The schema keeps Carbon's real names. The commonly wanted emitter values map:
-
-| Wanted | Schema field | Notes |
-|---|---|---|
-| name | `name` | `AudGameObjResource`, persisted |
-| prefix | `eventPrefix` | `AudGameObjResource`, persisted |
-| attenuation scaling | `scalingFactor` | `AudGameObjResource`, persisted; set via Carbon `SetAttenuationScalingFactor` |
-| position | `position` | `[AUTHORED]` promotion (2026-07-18 port review): not a Blue attribute — Carbon routes it through `Initialize(name, prefix, position)` — but it is authored data, so the JS graph serializes it per the kb.md authored-value rule |
-
-## Development
-
-Decorated pure JavaScript under `src/` is canonical; Babel (`2023-11`
-decorators) + Rollup transform it into `npm/dist`.
-
-```powershell
-npm run generate         # regenerate src/trinity/{audio,trinityAudioApi} from schema
-npm run build:npm        # refresh npm/ metadata + rollup build
-npm test                 # build + node --test
-npm run lint             # build + node --check syntax gates
-npm run proof:decorators # decorator transform behavior proof
-npm run check            # lint + test + decorator proof
+```sh
+npm install @carbonenginejs/runtime-audio
 ```
 
-Package entry points (`exports`, mirrored in `npm.package.json` as `dist/`):
+## Quick start
 
-| Subpath | Target | Surface |
-|---|---|---|
-| `.` | `src/index.js` | full: graph + `CjsAudioSystem`/`CjsAudioBackend` + metadata factory |
-| `./trinity` | `src/trinity/index.js` | graph-only (safe for runtime-sof / headless consumers) |
-| `./audioMetadata` | `src/audioMetadata.js` | `audioMetadataFromSoundbanksInfo` |
+The `./trinity` entry is safe in browsers and headless hosts. It creates no
+audio context and performs no device work:
 
-## Current scope
+```js
+import {
+    AudEmitter
+} from "@carbonenginejs/runtime-audio/trinity";
 
-- 13 generated Carbon data classes (12 `audio`, 1 `trinityAudioApi`) plus the
-  hand-owned `trinityAudio` stretch classes — post-review set: pure interfaces
-  carry no schema body, and 17 native-plumbing/telemetry classes were trimmed
-  by the 2026-07-18 C++-verified port review (see `src/trinity/README.md`).
-- Initial realization (2026-07-18, repaired 2026-07-19): `CjsAudioSystem` +
-  `CjsAudioBackend` — WebAudio playback with per-source gain isolation,
-  catalog-route virtual banks, HRTF positioning, stop/break fade semantics,
-  and the true-null headless contract. RTPC/switch values are stored but not
-  yet audibly mapped.
-- Not yet: audible RTPC/state routing, real bank media management (banks are
-  virtual on the catalog route), SOF integration (deferred per the kb.md
-  "Open audio graph representation discussion" — SOF keeps its deferred
-  metadata for now).
+const emitter = new AudEmitter();
+emitter.Initialize("engine", "ship_", [ 0, 0, 0 ]);
+emitter.SetRTPC("speed", 0.5);
 
-## Provenance
+const values = emitter.GetValues();
+```
 
-CarbonEngine and Fenris Creations (CCP Games) are named for interoperability
-and provenance context. This package's runtime code is CarbonEngineJS original
-work that ports or adapts CarbonEngine class structure and behavior, verified
-against the CarbonEngine C++ source, and mines the ccpwgl WebGL port as a
-reference donor. Not affiliated with or endorsed by CCP Games.
+Applications that need audible playback compose `CjsAudioSystem` with their
+own context and decoded-buffer loader during a user gesture.
+
+## Documentation
+
+- [Package documentation](docs/README.md)
+- [Architecture and boundaries](docs/architecture.md)
+- [Browser playback guide](docs/guides/browser-playback.md)
+- [Current API reference](docs/reference/api.md)
+- [Carbon compatibility](docs/reference/carbon-compatibility.md)
+- [Class-purpose catalog](docs/reference/classes/README.md)
+- [Audio manager direction](docs/concepts/audio-manager.md)
+
+## License
+
+MIT. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

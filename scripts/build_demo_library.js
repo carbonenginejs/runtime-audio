@@ -14,11 +14,19 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const orgRoot = path.resolve(root, "..");
-const libraryPath = process.argv.includes("--library")
-  ? process.argv[process.argv.indexOf("--library") + 1]
-  : path.join(orgRoot, ".tmp", "ccp_3435006_audio_v1.json");
+const libraryPath = ReadOption("--library") ?? process.env.AUDIO_LIBRARY_PATH;
+
+if (!libraryPath)
+{
+  throw new Error("Pass --library <audio_v2.json> or set AUDIO_LIBRARY_PATH");
+}
+
 const library = JSON.parse(fs.readFileSync(libraryPath, "utf8"));
+
+if (library.schema !== "carbonenginejs.audioLibrary" || ![ 1, 2 ].includes(library.schemaVersion))
+{
+  throw new Error(`Unsupported audio library schema: ${library.schema ?? "<missing>"} v${library.schemaVersion ?? "<missing>"}`);
+}
 
 const events = {};
 for (const [ name, record ] of Object.entries(library.metadata?.Events ?? {}))
@@ -48,15 +56,17 @@ const demoLibrary = {
   media: library.media,
   banks: library.banks,
   eventMedia: library.eventMedia,
+  eventMediaLanguage: library.eventMediaLanguage,
   embeddedMedia: library.embeddedMedia,
   music: library.music
 };
 
-const outPath = path.join(root, "demo", "audio-library.json");
+const outPath = path.resolve(ReadOption("--out") ?? path.join(root, "demo", "audio-library.json"));
 const json = Buffer.from(JSON.stringify(demoLibrary));
 const gzipPath = `${outPath}.gz`;
 const gzip = gzipSync(json, { level: 9, mtime: 0 });
 
+fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, json);
 fs.writeFileSync(gzipPath, gzip);
 console.log("wrote", outPath, `${(json.byteLength / 1048576).toFixed(2)} MB`);
@@ -69,3 +79,9 @@ for (const banned of [ "maxRadiusAttenuation", "isLoop", "is2D", "isVital", "eve
   if (text.includes(`"${banned}"`)) throw new Error(`Optional enrichment field leaked into demo library: ${banned}`);
 }
 console.log("verified: no optional enrichment fields present");
+
+function ReadOption(name)
+{
+  const index = process.argv.indexOf(name);
+  return index === -1 ? null : process.argv[index + 1] ?? null;
+}

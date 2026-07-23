@@ -27,6 +27,7 @@ function FakeContext(log)
       const panner = {
         panningModel: "", distanceModel: "", refDistance: 1,
         positionX: FakeParam(), positionY: FakeParam(), positionZ: FakeParam(),
+        orientationX: FakeParam(), orientationY: FakeParam(), orientationZ: FakeParam(),
         connect: () => {}, disconnect: () => {}
       };
       log.push(panner);
@@ -87,6 +88,10 @@ test("CjsAudioSystem realizes an emitter event end to end on a fake AudioContext
     const panner = log.find(item => typeof item === "object" && item.positionX);
     assert.equal(panner.positionX.value, 10);
     assert.equal(panner.panningModel, "HRTF");
+    assert.deepEqual(
+      [panner.orientationX.value, panner.orientationY.value, panner.orientationZ.value],
+      [1, 0, 0],
+      "effective emitter front reached the panner");
 
     // Carbon's authored volume control group: the master level RTPC drives
     // the master gain audibly (0..1 user setting).

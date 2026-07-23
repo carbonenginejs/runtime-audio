@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CjsSchema } from "@carbonenginejs/core-types/schema";
-import { AudEventCurve, AudEventKey, AudStaticDataRepository } from "../npm/dist/index.js";
+import { AudEmitter, AudEventCurve, AudEventKey, AudStaticDataRepository } from "../npm/dist/index.js";
 
 
 test("AudStaticDataRepository catalogs audiometadata and answers Carbon queries", () =>
@@ -99,6 +99,29 @@ test("AudEventCurve.Initialize sorts hydrated keys and refreshes length", () =>
   assert.ok(Object.isFrozen(AudEventCurve.TRIEXTRAPOLATION));
 });
 
+test("AudEventCurve dispatches crossed keys and holds the latest event until placement arrives", () =>
+{
+  const emitter = new AudEmitter();
+  const events = [];
+  emitter.SendEvent = eventName => (events.push(eventName), events.length);
+  const observer = { observer: emitter, GetObserver() { return this.observer; }, SetObserver(value) { this.observer = value; } };
+  const curve = AudEventCurve.from({
+    keys: [
+      { time: 0.25, value: "first" },
+      { time: 0.5, value: "second" }
+    ]
+  });
+  curve.SetSourceTriObserver(observer);
+  curve.UpdateValue(0.5);
+  assert.deepEqual(events, [], "unpositioned emitter queues rather than posts");
+  emitter.SetPosition([ 0, 0, 1 ], [ 0, 1, 0 ], [ 1, 2, 3 ]);
+  curve.UpdateValue(0.6);
+  assert.deepEqual(events, [ "second" ], "Carbon retains the latest queued event");
+  curve.Reset();
+  curve.UpdateValue(0.3);
+  assert.deepEqual(events, [ "second", "first" ]);
+});
+
 
 test("behavior method metadata reflects implementation status", () =>
 {
@@ -106,8 +129,8 @@ test("behavior method metadata reflects implementation status", () =>
   new AudStaticDataRepository();
 
   assert.equal(CjsSchema.getMethod(AudEventCurve, "AddKey").impl.status, "implemented");
-  assert.equal(CjsSchema.getMethod(AudEventCurve, "UpdateValue").impl.status, "notImplemented");
-  assert.match(CjsSchema.getMethod(AudEventCurve, "SetSourceTriObserver").impl.reason, /defers emitter creation/);
+  assert.equal(CjsSchema.getMethod(AudEventCurve, "UpdateValue").impl.status, "implemented");
+  assert.equal(CjsSchema.getMethod(AudEventCurve, "SetSourceTriObserver").impl.status, "implemented");
   assert.equal(CjsSchema.getMethod(AudStaticDataRepository, "Initialize").impl.status, "adapted");
 });
 

@@ -1,8 +1,7 @@
-// Data-only Carbon audio graph classes owned by this package - see
-// src/trinity/README.md, AUDIO-MAP.md, and .agents/CLASS-OWNERSHIP.md.
-// This entry must stay headless: importing it never requires an AudioContext,
-// WebAudio, or DOM. The WebAudio realization (CjsAudio*, ICjsAudioSystem) is a
-// later, separate layer.
+// Complete audio-domain entry. The Carbon graph remains independently
+// available through ./trinity; this root also exports the lazy WebAudio
+// realization. Importing the root must not create an AudioContext or touch DOM
+// state even though backend modules are evaluated.
 export * from "./trinity/index.js";
 
 // CarbonEngineJS-original realization layer (WebAudio). Importing these does

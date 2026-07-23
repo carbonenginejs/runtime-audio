@@ -5,6 +5,7 @@
 import { carbon, impl, io, schema, type } from "@carbonenginejs/core-types/schema";
 import { CjsModel } from "@carbonenginejs/core-types/model";
 import { TriExtrapolation } from "@carbonenginejs/runtime-const/graphics";
+import { AudEmitter } from "./AudEmitter.js";
 import { AudEventKey } from "./AudEventKey.js";
 
 /** AudEventCurve (audio) - timeline curve whose keys fire audio events. */
@@ -60,6 +61,8 @@ export class AudEventCurve extends CjsModel
 
   // Playback cursor (C++ m_currentKeyIt) - runtime state, rebuildable.
   #currentKeyIndex = 0;
+
+  #queuedEvent = "";
 
   /** Carbon method AddKey (MAP_METHOD_AND_WRAP). Appends a key and resorts. */
   @carbon.method
@@ -151,10 +154,9 @@ export class AudEventCurve extends CjsModel
     }
   }
 
-  /** Carbon method Initialize (IInitialize, not Blue-mapped): sort persisted keys, refresh length. */
+  /** Carbon method Initialize (IInitialize, not Blue-mapped): sort persisted keys, refresh length and attach an emitter. */
   @carbon.method
-  @impl.adapted
-  @impl.reason("Carbon also creates/attaches an AudEmitter here; the headless graph defers emitter creation to the audio system.")
+  @impl.implemented
   Initialize()
   {
     SortKeys(this.keys);
@@ -162,6 +164,10 @@ export class AudEventCurve extends CjsModel
     if (this.keys.length > 0)
     {
       this.length = this.keys[this.keys.length - 1].time;
+    }
+    if (this.sourceTriObserver)
+    {
+      this.CreateAudioEmitter();
     }
     return true;
   }
@@ -172,6 +178,7 @@ export class AudEventCurve extends CjsModel
   Reset()
   {
     this.#currentKeyIndex = 0;
+    this.#queuedEvent = "";
   }
 
   /** Carbon method GetSourceTriObserver (MAP_METHOD_AND_WRAP). */
@@ -184,20 +191,98 @@ export class AudEventCurve extends CjsModel
 
   /** Carbon method SetSourceTriObserver (MAP_METHOD_AND_WRAP). */
   @carbon.method
-  @impl.adapted
-  @impl.reason("Carbon calls CreateAudioEmitter() here; the headless graph assigns the reference only and defers emitter creation to the audio system.")
+  @impl.implemented
   SetSourceTriObserver(sourceTriObserver)
   {
     this.sourceTriObserver = sourceTriObserver;
+    this.CreateAudioEmitter();
+  }
+
+  /** Carbon method CreateAudioEmitter: reuse or attach an AudEmitter placement observer. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("The placement-observer contract is consumed structurally to keep runtime-audio independent of runtime-trinity.")
+  CreateAudioEmitter()
+  {
+    if (!this.sourceTriObserver)
+    {
+      return null;
+    }
+    const existing = this.sourceTriObserver.GetObserver?.() ?? this.sourceTriObserver.observer ?? null;
+    if (existing instanceof AudEmitter)
+    {
+      this.audioEmitter = existing;
+      return existing;
+    }
+    const emitter = new AudEmitter();
+    emitter.Initialize(this.name);
+    this.sourceTriObserver.SetObserver?.(emitter);
+    if (!this.sourceTriObserver.SetObserver)
+    {
+      this.sourceTriObserver.observer = emitter;
+    }
+    this.audioEmitter = emitter;
+    return emitter;
   }
 
   /** Carbon method UpdateValue (ITriFunction): fires keyed events as time advances. */
   @carbon.method
-  @impl.notImplemented
-  @impl.note("Lands with realization: event dispatch requires a live ITr2AudEmitter (SendEvent + position gate).")
-  UpdateValue(...args)
+  @impl.implemented
+  UpdateValue(time)
   {
-    throw new Error("AudEventCurve.UpdateValue is not implemented in CarbonEngineJS.");
+    if (this.length === 0)
+    {
+      return;
+    }
+    const before = this.time;
+    this.time = Number(time) || 0;
+    if (this.time < before)
+    {
+      this.#currentKeyIndex = 0;
+    }
+
+    if (this.extrapolation === TriExtrapolation.TRIEXT_CYCLE)
+    {
+      const localNow = this.time % this.length;
+      if (localNow < this.localTime)
+      {
+        this.#currentKeyIndex = 0;
+      }
+      this.localTime = localNow;
+    }
+    else
+    {
+      this.localTime = this.time;
+    }
+
+    if (!this.audioEmitter && this.sourceTriObserver)
+    {
+      this.CreateAudioEmitter();
+    }
+    const positioned = this.audioEmitter?.HasReceivedPosition?.() === true;
+    if (this.#queuedEvent && positioned)
+    {
+      this.audioEmitter.SendEvent(this.#queuedEvent);
+      this.#queuedEvent = "";
+    }
+
+    while (this.#currentKeyIndex < this.keys.length
+      && this.localTime >= this.keys[this.#currentKeyIndex].time)
+    {
+      const eventName = this.keys[this.#currentKeyIndex].value;
+      if (eventName)
+      {
+        if (positioned)
+        {
+          this.audioEmitter.SendEvent(eventName);
+        }
+        else
+        {
+          this.#queuedEvent = eventName;
+        }
+      }
+      this.#currentKeyIndex++;
+    }
   }
 
   // Carbon enum TRIEXTRAPOLATION (blue/include/ITriConstants.h:33) - shared

@@ -14,6 +14,14 @@ const FLOAT_MAX = 3.4028234663852886e38;
 export class AudListener extends AudGameObjResource
 {
 
+  #effectiveFront = vec3.fromValues(0, 0, 1);
+
+  #effectiveTop = vec3.fromValues(0, 1, 0);
+
+  #normalizedTop = vec3.fromValues(0, 1, 0);
+
+  #cross = vec3.fromValues(-1, 0, 0);
+
   constructor()
   {
     // Carbon: AudGameObjResource(LISTENER_GAME_OBJ_ID) - fixed id must be set
@@ -24,22 +32,33 @@ export class AudListener extends AudGameObjResource
     this.additionalCullingWeight = FLOAT_MAX;
   }
 
-  /** Carbon method SetPosition -> SetPositionHelper (Blue mapping). */
+  /** Carbon method SetPosition -> SetPlacementFromParent (Blue mapping). */
   @carbon.renamed("SetPosition")
   @impl.implemented
   SetPosition(front, top, position)
   {
-    return this.SetPositionHelper(front, top, position);
+    return this.SetPlacementFromParent(front, top, position);
   }
 
   /** Carbon override: listener stores position with a looser gate and uses the listener RH->LH flip. */
   @carbon.method
   @impl.adapted
   @impl.reason("Backend push (RH2LH::convertListener + default-listener registration) is realization; the headless graph stores the position.")
-  SetPositionHelper(front, top, positionValue)
+  SetPlacementFromParent(front, top, positionValue)
   {
+    AudGameObjResource.Orthonormalize(
+      this.#effectiveFront,
+      this.#effectiveTop,
+      front,
+      top,
+      this.#normalizedTop,
+      this.#cross);
     vec3.copy(this.position, positionValue);
-    AudGameObjResource.backend?.SetListenerPosition?.(this.ID, front, top, positionValue);
+    AudGameObjResource.backend?.SetListenerPosition?.(
+      this.ID,
+      this.#effectiveFront,
+      this.#effectiveTop,
+      this.position);
     return 1;
   }
 

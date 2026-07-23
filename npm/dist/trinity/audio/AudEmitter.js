@@ -1,27 +1,38 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
 import { io, type, impl, carbon } from '@carbonenginejs/core-types/schema';
+import { quat } from '@carbonenginejs/core-math/quat';
+import { vec3 } from '@carbonenginejs/core-math/vec3';
 import { AudGameObjResource as _AudGameObjResource } from './AudGameObjResource.js';
 
-let _initProto, _initClass, _init_normalizeAttenuationScaling, _init_extra_normalizeAttenuationScaling, _init_visualizationRadius, _init_extra_visualizationRadius, _init_maxNormalizedValue, _init_extra_maxNormalizedValue, _init_maxNormalizedScalingFactor, _init_extra_maxNormalizedScalingFactor, _init_minNormalizedValue, _init_extra_minNormalizedValue, _init_minNormalizedScalingFactor, _init_extra_minNormalizedScalingFactor;
+let _initProto, _initClass, _init_rotation, _init_extra_rotation, _init_front, _init_extra_front, _init_top, _init_extra_top, _init_normalizeAttenuationScaling, _init_extra_normalizeAttenuationScaling, _init_visualizationRadius, _init_extra_visualizationRadius, _init_maxNormalizedValue, _init_extra_maxNormalizedValue, _init_maxNormalizedScalingFactor, _init_extra_maxNormalizedScalingFactor, _init_minNormalizedValue, _init_extra_minNormalizedValue, _init_minNormalizedScalingFactor, _init_extra_minNormalizedScalingFactor;
 
 /** AudEmitter (audio) - the concrete content-facing emitter (ITr2AudEmitter). */
 let _AudEmitter;
 class AudEmitter extends _AudGameObjResource {
   static {
     ({
-      e: [_init_normalizeAttenuationScaling, _init_extra_normalizeAttenuationScaling, _init_visualizationRadius, _init_extra_visualizationRadius, _init_maxNormalizedValue, _init_extra_maxNormalizedValue, _init_maxNormalizedScalingFactor, _init_extra_maxNormalizedScalingFactor, _init_minNormalizedValue, _init_extra_minNormalizedValue, _init_minNormalizedScalingFactor, _init_extra_minNormalizedScalingFactor, _initProto],
+      e: [_init_rotation, _init_extra_rotation, _init_front, _init_extra_front, _init_top, _init_extra_top, _init_normalizeAttenuationScaling, _init_extra_normalizeAttenuationScaling, _init_visualizationRadius, _init_extra_visualizationRadius, _init_maxNormalizedValue, _init_extra_maxNormalizedValue, _init_maxNormalizedScalingFactor, _init_extra_maxNormalizedScalingFactor, _init_minNormalizedValue, _init_extra_minNormalizedValue, _init_minNormalizedScalingFactor, _init_extra_minNormalizedScalingFactor, _initProto],
       c: [_AudEmitter, _initClass]
     } = _applyDecs2311(this, [type.define({
       className: "AudEmitter",
       family: "audio"
-    })], [[[io, io.persist, type, type.boolean], 16, "normalizeAttenuationScaling"], [[io, io.persist, type, type.float32], 16, "visualizationRadius"], [[io, io.persist, type, type.float32], 16, "maxNormalizedValue"], [[io, io.persist, type, type.float32], 16, "maxNormalizedScalingFactor"], [[io, io.persist, type, type.float32], 16, "minNormalizedValue"], [[io, io.persist, type, type.float32], 16, "minNormalizedScalingFactor"], [[void 0, carbon.renamed("__init__"), impl, impl.implemented], 18, "__init__"], [[void 0, carbon.renamed("SendEvent"), impl, impl.implemented], 18, "SendEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetPosition"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdatePlacement"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetAttenuationScalingFactor"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetName"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetName"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetPrefix"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetVisibility"]], 0, void 0, _AudGameObjResource));
+    })], [[[io, io.notify, io, io.persist, type, type.quat], 16, "rotation"], [[io, io.read, type, type.vec3], 16, "front"], [[io, io.read, type, type.vec3], 16, "top"], [[io, io.persist, type, type.boolean], 16, "normalizeAttenuationScaling"], [[io, io.persist, type, type.float32], 16, "visualizationRadius"], [[io, io.persist, type, type.float32], 16, "maxNormalizedValue"], [[io, io.persist, type, type.float32], 16, "maxNormalizedScalingFactor"], [[io, io.persist, type, type.float32], 16, "minNormalizedValue"], [[io, io.persist, type, type.float32], 16, "minNormalizedScalingFactor"], [[void 0, carbon.renamed("__init__"), impl, impl.implemented], 18, "__init__"], [[void 0, carbon.renamed("SendEvent"), impl, impl.implemented], 18, "SendEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetPosition"], [[void 0, carbon.renamed("SetPlacement"), impl, impl.implemented], 18, "SetPlacement"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdatePlacement"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetAttenuationScalingFactor"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetName"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetName"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetPrefix"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetVisibility"]], 0, void 0, _AudGameObjResource));
   }
   constructor(...args) {
     super(...args);
     _init_extra_minNormalizedScalingFactor(this);
   }
+  /** m_authoredRotation (Quaternion) [READWRITE, PERSIST, NOTIFY] */
+  rotation = (_initProto(this), _init_rotation(this, quat.create()));
+
+  /** Effective front vector sent to the audio backend [READ]. */
+  front = (_init_extra_rotation(this), _init_front(this, vec3.fromValues(0, 0, 1)));
+
+  /** Effective top vector sent to the audio backend [READ]. */
+  top = (_init_extra_front(this), _init_top(this, vec3.fromValues(0, 1, 0)));
+
   /** m_normalizeAttenuationScaling (bool) [READWRITE, PERSIST] */
-  normalizeAttenuationScaling = (_initProto(this), _init_normalizeAttenuationScaling(this, false));
+  normalizeAttenuationScaling = (_init_extra_top(this), _init_normalizeAttenuationScaling(this, false));
 
   /** m_visualizationRadius (float) [READWRITE, PERSIST] */
   visualizationRadius = (_init_extra_normalizeAttenuationScaling(this), _init_visualizationRadius(this, 0));
@@ -51,7 +62,12 @@ class AudEmitter extends _AudGameObjResource {
   /** Carbon method SetPosition: marks the emitter positioned (unblocks Wake), then stores/pushes. */
   SetPosition(front, top, position) {
     this.MarkPositionReceived();
-    return this.SetPositionHelper(front, top, position);
+    return this.SetPlacementFromParent(front, top, position);
+  }
+
+  /** Carbon Blue method SetPlacement -> SetPosition. */
+  SetPlacement(front, top, position) {
+    return this.SetPosition(front, top, position);
   }
 
   /** Carbon method UpdatePlacement: placement observers forward here. */

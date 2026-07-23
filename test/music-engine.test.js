@@ -156,6 +156,13 @@ function Harness(mutate = null)
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+function Deferred()
+{
+  let resolve;
+  const promise = new Promise(next => { resolve = next; });
+  return { promise, resolve };
+}
+
 
 test("posting the music event schedules the resolved playlist's segment clips on time", async () =>
 {
@@ -308,9 +315,13 @@ test("an authored stop event stops the matching instance with the default fade",
   context.currentTime = 3;
   engine.PostEvent("music_test_stop", 507, () => finished.push(507));
   await tick();
-  assert.deepEqual(finished.sort(), [ 506, 507 ], "music finished and the stop event completed");
-  assert.equal(engine.GetPlayingCount(), 0);
+  assert.deepEqual(finished, [ 507 ], "the stop setter completes while the outgoing music remains audible");
+  assert.equal(engine.GetPlayingCount(), 1);
   assert.deepEqual(context.gains[1].gain.ramps, [ [ 0, 4 ] ], "default 1s fade");
+  context.currentTime = 4;
+  engine.Process();
+  assert.deepEqual(finished.sort(), [ 506, 507 ], "music finishes when the scheduled fade lands");
+  assert.equal(engine.GetPlayingCount(), 0);
 });
 
 
@@ -323,8 +334,70 @@ test("stop fades the instance gain and finishes exactly once", async () =>
   engine.ExecuteAction("stop", 505, 1000);
   assert.deepEqual(context.gains[1].gain.ramps, [ [ 0, 3 ] ], "1s fade on the instance gain");
   assert.equal(context.sources[0].stoppedAt, 3, "source stops when the fade lands");
+  assert.deepEqual(finished, [], "completion waits for the audible fade");
+  assert.equal(engine.GetPlayingCount(), 1);
+  assert.equal(context.gains[1].disconnected, false, "instance output remains connected through the fade");
+  context.currentTime = 3;
+  engine.Process();
   assert.deepEqual(finished, [ 505 ]);
   assert.equal(engine.GetPlayingCount(), 0);
+  assert.equal(context.gains[1].disconnected, true, "instance output disconnects after the fade");
   engine.ExecuteAction("stop", 505, 0);
   assert.deepEqual(finished, [ 505 ], "second stop is a no-op");
+});
+
+test("decoded music cache can be released and null loads retry", async () =>
+{
+  const context = FakeContext();
+  let calls = 0;
+  const engine = new CjsMusicEngine({
+    graph: fixtureGraph(),
+    context,
+    destination: context.destination,
+    loadMedia: async sourceId => (++calls === 1 ? null : { fresh: sourceId }),
+    random: () => 0.5
+  });
+  engine.PostEvent("music_test_play", 700, () => {});
+  await tick();
+  assert.equal(calls, 1);
+  assert.equal(engine.GetCachedMediaCount(), 0, "a null result is not cached forever");
+
+  context.currentTime = 7;
+  engine.Process();
+  await tick();
+  assert.equal(calls, 2, "the next segment retries the missing source");
+  assert.equal(engine.GetCachedMediaCount(), 1);
+  assert.equal(engine.ReleaseMedia(111), true);
+  assert.equal(engine.GetCachedMediaCount(), 0);
+  assert.equal(engine.ClearMedia(), 0);
+  engine.Dispose();
+});
+
+test("graph replacement cancels stale pending media and reuses source ids with the new loader", async () =>
+{
+  const context = FakeContext();
+  const pending = Deferred();
+  const finished = [];
+  const engine = new CjsMusicEngine({
+    graph: fixtureGraph(),
+    context,
+    destination: context.destination,
+    loadMedia: () => pending.promise,
+    random: () => 0.5
+  });
+  engine.PostEvent("music_test_play", 701, () => finished.push(701));
+  engine.SetGraph(fixtureGraph(), {
+    loadMedia: async sourceId => ({ replacement: sourceId })
+  });
+  assert.deepEqual(finished, [ 701 ], "replacement finishes old instances exactly once");
+  pending.resolve({ stale: true });
+  await tick();
+  assert.equal(context.sources.length, 0, "the stale load cannot create a source");
+
+  engine.PostEvent("music_test_play", 702, () => finished.push(702));
+  await tick();
+  assert.equal(context.sources.length, 1);
+  assert.deepEqual(context.sources[0].buffer, { replacement: 111 });
+  engine.Dispose();
+  assert.deepEqual(finished, [ 701, 702 ]);
 });

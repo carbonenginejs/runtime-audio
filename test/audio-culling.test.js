@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { CjsSchema } from "@carbonenginejs/core-types/schema";
 import {
   AudEmitter,
   AudGameObjResource,
   AudListener,
+  AudManager,
   AudStaticDataRepository,
   SoundPrioritization
 } from "../npm/dist/index.js";
@@ -211,7 +213,7 @@ test("StretchAudio projects the listener onto the beam segment", async () =>
   {
     manager.Enable([]);
     const listener = new AudListener();
-    listener.SetPositionHelper([0, 1, 0], [0, 0, 1], [5, 10, 0]);
+    listener.SetPosition([0, 1, 0], [0, 0, 1], [5, 10, 0]);
     manager.RegisterGameObject(listener.GetID(), listener);
 
     const stretch = new StretchAudio();
@@ -219,12 +221,16 @@ test("StretchAudio projects the listener onto the beam segment", async () =>
     stretch.Update([0, 0, 0], [10, 0, 0]);
     // Listener at x=5 above the segment -> projection lands mid-segment.
     assert.deepEqual(Array.from(stretch.stretchEmitter.position), [5, 0, 0]);
+    assert.deepEqual(Array.from(stretch.stretchEmitter.front, value => value || 0), [1, 0, 0]);
+    assert.deepEqual(Array.from(stretch.stretchEmitter.top, value => value || 0), [0, 0, 1]);
     // Beyond the dest end -> clamped to t=1.
     stretch.Update([0, 0, 0], [3, 0, 0]);
     assert.deepEqual(Array.from(stretch.stretchEmitter.position), [3, 0, 0]);
     // Degenerate segment -> source position.
     stretch.Update([2, 2, 2], [2, 2, 2]);
     assert.deepEqual(Array.from(stretch.stretchEmitter.position), [2, 2, 2]);
+    assert.deepEqual(Array.from(stretch.stretchEmitter.front, value => value || 0), [0, 1, 0]);
+    assert.deepEqual(Array.from(stretch.stretchEmitter.top, value => value || 0), [0, 0, 1]);
     assert.equal(stretch.FindEmitterByName("stretch_mid_sfx"), stretch.stretchEmitter);
   }
   finally
@@ -256,6 +262,44 @@ test("headless (no manager): posts queue, RTPC/switch store and return false", (
     assert.equal(emitter.GetWaitingOneShot(), "ship_ping", "prefix applied");
     assert.equal(emitter.PostEvent(" ping ", true), 0);
     assert.equal(emitter.GetWaitingOneShot(), "ping", "bypass skips prefix, trim always applies");
+  }
+  finally
+  {
+    teardown();
+  }
+});
+
+test("AudManager exposes portable culling/debug methods and marks native device APIs unsupported", () =>
+{
+  const manager = new AudManager();
+  const repository = new AudStaticDataRepository();
+  repository.Initialize({ Events: {}, SoundBanks: {}, WemFileIDs: {} });
+  AudGameObjResource.manager = manager;
+  AudGameObjResource.staticDataRepository = repository;
+  AudGameObjResource.backend = {};
+  try
+  {
+    manager.Enable();
+    const emitter = new AudEmitter();
+    emitter.SetPosition([ 0, 0, 1 ], [ 0, 1, 0 ], [ 0, 0, 0 ]);
+    assert.equal(emitter.IsCulled(), true);
+    manager.DisableAudioCulling();
+    assert.equal(manager.audioCullingEnabled, false);
+    assert.equal(emitter.IsCulled(), false);
+    manager.EnableAudioCulling();
+    assert.equal(manager.audioCullingEnabled, true);
+    assert.ok(manager.GetPrioritizedEmitters().includes(emitter));
+
+    manager.EnableDebugDisplayAllEmitters();
+    assert.equal(manager.GetDebugDisplayAllEmitters(), true);
+    manager.DisableDebugDisplayAllEmitters();
+    assert.equal(manager.GetDebugDisplayAllEmitters(), false);
+
+    new AudManager();
+    assert.equal(CjsSchema.getMethod(AudManager, "EnableSpatialAudio").impl.status, "notSupported");
+    assert.equal(CjsSchema.getMethod(AudManager, "StartProfilerCapture").impl.status, "notSupported");
+    assert.equal(manager.SpatialAudioIsSupported(), false);
+    assert.equal(manager.IsProfilerCapturing(), false);
   }
   finally
   {

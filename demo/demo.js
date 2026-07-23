@@ -69,6 +69,11 @@ class AudioLibrary
 
     constructor(raw)
     {
+        if (raw.schema !== "carbonenginejs.audioLibrary" || ![ 1, 2 ].includes(raw.schemaVersion))
+        {
+            throw new Error(`Unsupported audio library schema: ${raw.schema ?? "<missing>"} v${raw.schemaVersion ?? "<missing>"}`);
+        }
+
         this.raw = raw;
         this.eventNames = Object.keys(raw.metadata.Events);
         for (const name of this.eventNames)
@@ -82,16 +87,14 @@ class AudioLibrary
     }
 
     /**
-     * One artifact for all audio. Prefer the local full-fidelity build
-     * artifact (org .tmp, full-fidelity, machine-local) and fall back to the
-     * committed base-metadata demo copy (scripts/build_demo_library.js) so a
-     * fresh clone works. The fallback URL is anchored to this module so the
-     * page URL ("/" vs the full demo path) cannot break it.
+     * One artifact for all audio. Prefer the library selected by the demo
+     * server, then fall back to the committed base-metadata demo copy so a
+     * fresh clone or another static server still works.
      */
     static async Load()
     {
-        const raw = await FetchLibraryJson("/.tmp/ccp_3435006_audio_v1.json.gz")
-            ?? await FetchLibraryJson("/.tmp/ccp_3435006_audio_v1.json")
+        const raw = await FetchLibraryJson("/audio-library.json.gz")
+            ?? await FetchLibraryJson("/audio-library.json")
             ?? await FetchLibraryJson(new URL("./audio-library.json.gz", import.meta.url))
             ?? await FetchLibraryJson(new URL("./audio-library.json", import.meta.url));
 
@@ -109,8 +112,7 @@ class AudioLibrary
     }
 
     /**
-     * Dynamic-music graph: the library's `music` section (folded in by
-     * scripts/build_music_graph.js).
+     * Dynamic-music graph: the library's tools-generated `music` section.
      */
     get music()
     {
@@ -141,12 +143,24 @@ class AudioLibrary
      */
     WemUrl(wemId)
     {
-        if (this.raw.media[wemId]) return `/cache/${this.raw.media[wemId].storagePath}`;
-        const embedded = this.raw.embeddedMedia?.[wemId];
+        const media = this.SelectVariant(this.raw.media[wemId]);
+        if (media) return `/cache/${media.storagePath}`;
+        const embedded = this.SelectVariant(this.raw.embeddedMedia?.[wemId]);
         // mediaType is catalog-time typing (kb §5): only wem entries are
         // playable audio; MIDI clips and plugin blobs are music-system data.
         if (embedded && (!embedded.mediaType || embedded.mediaType === "wem")) return `/bankwem/${wemId}`;
         return null;
+    }
+
+    /** Select the source matching the language used to build eventMedia. */
+    SelectVariant(value)
+    {
+        if (!Array.isArray(value)) return value ?? null;
+        const language = this.raw.eventMediaLanguage ?? "";
+        return value.find(record => record.language === language)
+            ?? value.find(record => !record.language)
+            ?? value[0]
+            ?? null;
     }
 
     /**
@@ -281,7 +295,7 @@ class MediaSource
         return this.#Synthesize(eventName);
     }
 
-    /** The music engine loads media by wem id (segment clips are streamed) */
+    /** The music engine loads complete decoded buffers by wem id */
     async LoadMediaBuffer(sourceId)
     {
         const url = this.#library.WemUrl(sourceId);
@@ -425,6 +439,10 @@ class Scene
         this.listenerPosition[2] = world[2];
         // WebAudio default orientation: forward -Z, up +Y.
         this.listenerObject?.SetPosition([ 0, 0, -1 ], [ 0, 1, 0 ], this.listenerPosition);
+        for (const item of this.emitters)
+        {
+            Scene.SetEmitterPlacement(item.emitter, item.position, this.listenerPosition);
+        }
     }
 
     MoveEmitterTo(item, world)
@@ -432,8 +450,18 @@ class Scene
         item.position[0] = world[0];
         item.position[2] = world[2];
         // Real engine path: stores the graph position, re-culls against it,
-        // and pushes the panner position when the emitter is live.
-        item.emitter.SetPosition([ 1, 0, 0 ], [ 0, 1, 0 ], item.position);
+        // and pushes the panner placement when the emitter is live.
+        Scene.SetEmitterPlacement(item.emitter, item.position, this.listenerPosition);
+    }
+
+    /** Faces an emitter toward the listener and applies the public Blue placement API. */
+    static SetEmitterPlacement(emitter, position, listenerPosition)
+    {
+        const x = listenerPosition[0] - position[0],
+            z = listenerPosition[2] - position[2],
+            length = Math.hypot(x, z);
+        const front = length > 1e-6 ? [ x / length, 0, z / length ] : [ 0, 0, 1 ];
+        emitter.SetPlacement(front, [ 0, 1, 0 ], position);
     }
 
     /** One playing event on a fresh emitter; returns the scene item */
@@ -561,7 +589,7 @@ class Scene
         const emitter = new AudEmitter();
         if (fixedPosition)
         {
-            emitter.SetPosition([ 1, 0, 0 ], [ 0, 1, 0 ], fixedPosition);
+            Scene.SetEmitterPlacement(emitter, fixedPosition, this.listenerPosition);
             emitter.Wake();
             return { emitter, position: [ ...fixedPosition ], radius, born: performance.now() };
         }
@@ -582,7 +610,7 @@ class Scene
             0,
             Math.max(-halfZ, Math.min(halfZ, this.listenerPosition[2] + Math.sin(angle) * distance))
         ];
-        emitter.SetPosition([ 1, 0, 0 ], [ 0, 1, 0 ], position);
+        Scene.SetEmitterPlacement(emitter, position, this.listenerPosition);
         emitter.Wake();
         return { emitter, position, radius, born: performance.now() };
     }
@@ -711,6 +739,7 @@ class Stage
             `${emitter.IsCulled() ? "culled" : "awake"} · playing ${emitter.GetPlayingEvents().size} · level ${level.toFixed(2)}`,
             flags,
             `distance ${Math.round(distance)} / hearing ~${Math.round((Math.max(1e-4, item.scaling ?? 1) / AUDIBLE_GAIN_FLOOR) / ACOUSTIC_SCALE)} / cull ${Math.round(item.radius)}${scalingText}`,
+            `front ${Array.from(emitter.front, value => Math.abs(value) < 1e-3 ? 0 : value).map(value => value.toFixed(2)).join(", ")}${item.authoredYaw ? ` · authored yaw ${Math.round(item.authoredYaw * 180 / Math.PI)}°` : ""}`,
             `banks ${(record.soundbanks ?? []).join(", ") || "?"} · id ${record.eventID ?? "?"}`
         ].join("\n");
         const rect = this.#stageElement.getBoundingClientRect();
@@ -791,6 +820,13 @@ class Stage
                 context2d.arc(x, y, Math.max(6, hearingRadius * scale * item.meter), 0, 7);
                 context2d.fill();
             }
+            const front = item.emitter.front;
+            context2d.strokeStyle = culled ? "#64748b" : "#7dd3fc";
+            context2d.lineWidth = 2;
+            context2d.beginPath();
+            context2d.moveTo(x, y);
+            context2d.lineTo(x + front[0] * 22, y + front[2] * 22);
+            context2d.stroke();
             context2d.fillStyle = culled ? "#475569" : item.demo ? "#fbbf24" : "#34d399";
             context2d.beginPath();
             context2d.arc(x, y, 5, 0, 7);
@@ -832,6 +868,15 @@ class Stage
         const item = this.NearestEmitter(event);
         if (item)
         {
+            if (event.altKey)
+            {
+                item.authoredYaw = (item.authoredYaw ?? 0) + (event.deltaY < 0 ? Math.PI / 18 : -Math.PI / 18);
+                const halfYaw = item.authoredYaw / 2;
+                item.emitter.SetValues({
+                    rotation: [ 0, Math.sin(halfYaw), 0, Math.cos(halfYaw) ]
+                });
+                return;
+            }
             item.scaling = Math.min(20, Math.max(0.1, (item.scaling ?? 1) * (event.deltaY < 0 ? 1.15 : 1 / 1.15)));
             // Store first so a culled emitter replays the factor on Wake,
             // then push live (engine gates the backend call on awake+registered).

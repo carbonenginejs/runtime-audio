@@ -25,7 +25,7 @@ class AudManager extends CjsModel {
     } = _applyDecs2311(this, [type.define({
       className: "AudManager",
       family: "audio"
-    })], [[[io, io.readwrite, void 0, type.objectRef("IAudActionLog")], 16, "log"], [[io, io.read, type, type.boolean], 16, "audioCullingEnabled"], [[io, io.read, type, type.boolean], 16, "spatialAudioEnabled"], [[impl, impl.adapted, void 0, impl.reason("Carbon supplies this via UpdateSettings() outside Blue serialization; CarbonEngineJS persists it for values interchange."), io, io.persist, void 0, type.model("AudSettings")], 16, "settings"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetState"], [[void 0, carbon.renamed("GetState"), impl, impl.implemented], 18, "GetStateValue"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Wwise engine init (memory/stream/sound/spatial) is the backend's Init; the state machine, bank loads, and wake pass are faithful. Carbon's Enable bails un-enabled when Init fails (audio/src/AudManager.cpp:848-881); a missing backend seam is that failure, so headless the manager stays a true null manager and emitters keep queueing on their wake sets.")], 18, "Enable"], [[carbon, carbon.method, impl, impl.implemented], 18, "Disable"], [[carbon, carbon.method, impl, impl.implemented], 18, "LoadBank"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnloadBank"], [[carbon, carbon.method, impl, impl.implemented], 18, "ClearBanks"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateSoundBankStatus"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterEventAfterSoundBankLoad"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetSoundBankStatus"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetLoadedSoundBanks"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetGlobalRTPC"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetState"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopAll"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "RemoveCallbackGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetAudioEmitter"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetListener"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterParameter"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterParameter"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetParameterInfo"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateMonitoredParameters"], [[carbon, carbon.method, impl, impl.implemented], 18, "Process"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateSettings"], [[carbon, carbon.method, impl, impl.implemented], 18, "ResetCullingSettings"]], 0, void 0, CjsModel));
+    })], [[[io, io.readwrite, void 0, type.objectRef("IAudActionLog")], 16, "log"], [[io, io.read, type, type.boolean], 16, "audioCullingEnabled"], [[io, io.read, type, type.boolean], 16, "spatialAudioEnabled"], [[impl, impl.adapted, void 0, impl.reason("Carbon supplies this via UpdateSettings() outside Blue serialization; CarbonEngineJS persists it for values interchange."), io, io.persist, void 0, type.model("AudSettings")], 16, "settings"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetState"], [[void 0, carbon.renamed("GetState"), impl, impl.implemented], 18, "GetStateValue"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Wwise engine init (memory/stream/sound/spatial) is the backend's Init; the state machine, bank loads, and wake pass are faithful. Carbon's Enable bails un-enabled when Init fails (audio/src/AudManager.cpp:848-881); a missing backend seam is that failure, so headless the manager stays a true null manager and emitters keep queueing on their wake sets.")], 18, "Enable"], [[carbon, carbon.method, impl, impl.implemented], 18, "Disable"], [[carbon, carbon.method, impl, impl.implemented], 18, "LoadBank"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnloadBank"], [[carbon, carbon.method, impl, impl.implemented], 18, "ClearBanks"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateSoundBankStatus"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterEventAfterSoundBankLoad"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetSoundBankStatus"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetLoadedSoundBanks"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetGlobalRTPC"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetState"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopAll"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "RemoveCallbackGameObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetAudioEmitter"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetListener"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterParameter"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterParameter"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetParameterInfo"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateMonitoredParameters"], [[carbon, carbon.method, impl, impl.implemented], 18, "Process"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateSettings"], [[carbon, carbon.method, impl, impl.implemented], 18, "DisableAudioCulling"], [[carbon, carbon.method, impl, impl.implemented], 18, "EnableAudioCulling"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon returns SoundPrioritization's current debug list; CarbonEngineJS returns a defensive array of the same current order.")], 18, "GetPrioritizedEmitters"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon's native debug renderer reads a global flag; CarbonEngineJS retains the flag for an injected renderer.")], 18, "EnableDebugDisplayAllEmitters"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon's native debug renderer reads a global flag; CarbonEngineJS retains the flag for an injected renderer.")], 18, "DisableDebugDisplayAllEmitters"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("The value is available to browser renderers even though runtime-audio does not draw debug geometry.")], 18, "GetDebugDisplayAllEmitters"], [[carbon, carbon.method, impl, impl.notSupported], 18, "EnableSpatialAudio"], [[carbon, carbon.method, impl, impl.notSupported], 18, "DisableSpatialAudio"], [[carbon, carbon.method, impl, impl.notSupported], 18, "SpatialAudioIsSupported"], [[carbon, carbon.method, impl, impl.notSupported], 18, "RegisterAudioDeviceChangeCallback"], [[carbon, carbon.method, impl, impl.notSupported], 18, "StartProfilerCapture"], [[carbon, carbon.method, impl, impl.notSupported], 18, "StopProfilerCapture"], [[carbon, carbon.method, impl, impl.notSupported], 18, "IsProfilerCapturing"], [[carbon, carbon.method, impl, impl.implemented], 18, "ResetCullingSettings"]], 0, void 0, CjsModel));
   }
   /** m_log (IAudActionLogPtr) [READWRITE] */
   log = (_initProto(this), _init_log(this, null));
@@ -45,6 +45,7 @@ class AudManager extends CjsModel {
   #soundBankInfoMap = new Map();
   #monitoredParameters = new Map();
   #callbackGameObjects = new Map();
+  #debugDisplayAllEmitters = false;
 
   // CarbonEngineJS-original: the prioritization is a public collaborator so
   // emitters can read weights directly (see AudGameObjResource notes).
@@ -313,6 +314,78 @@ class AudManager extends CjsModel {
   /** Carbon method UpdateSettings. */
   UpdateSettings(settings) {
     this.settings = settings;
+  }
+
+  /** Carbon method DisableAudioCulling: wake all objects, then disable prioritization. */
+  DisableAudioCulling() {
+    for (const object of this.soundPrioritization.GetGameObjects()) {
+      if (object.IsCulled?.()) {
+        object.Wake?.();
+      }
+    }
+    this.soundPrioritization.SetAudioCullingEnabled(false);
+    this.audioCullingEnabled = false;
+  }
+
+  /** Carbon method EnableAudioCulling. */
+  EnableAudioCulling() {
+    this.soundPrioritization.SetAudioCullingEnabled(true);
+    this.audioCullingEnabled = true;
+  }
+
+  /** Carbon debug method GetPrioritizedEmitters: defensive current-order snapshot. */
+  GetPrioritizedEmitters() {
+    return this.soundPrioritization.GetGameObjects();
+  }
+
+  /** Carbon debug flag; renderer consumption remains optional. */
+  EnableDebugDisplayAllEmitters() {
+    this.#debugDisplayAllEmitters = true;
+  }
+
+  /** Carbon debug flag; renderer consumption remains optional. */
+  DisableDebugDisplayAllEmitters() {
+    this.#debugDisplayAllEmitters = false;
+  }
+
+  /** Carbon debug flag query. */
+  GetDebugDisplayAllEmitters() {
+    return this.#debugDisplayAllEmitters;
+  }
+
+  /** Native Wwise output-device replacement has no WebAudio equivalent. */
+  EnableSpatialAudio() {
+    return false;
+  }
+
+  /** Native Wwise output-device replacement has no WebAudio equivalent. */
+  DisableSpatialAudio() {
+    return false;
+  }
+
+  /** OS/Wwise spatial-output support cannot be inferred from a WebAudio panner. */
+  SpatialAudioIsSupported() {
+    return false;
+  }
+
+  /** Native audio-device callbacks have no owned browser equivalent. */
+  RegisterAudioDeviceChangeCallback(callback) {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  StartProfilerCapture() {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  StopProfilerCapture() {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  IsProfilerCapturing() {
+    return false;
   }
 
   /** Carbon method ResetCullingSettings. */

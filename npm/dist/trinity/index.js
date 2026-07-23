@@ -8,7 +8,7 @@ export { AudMusicPlayer, MUSIC_GAME_OBJ_ID } from './audio/AudMusicPlayer.js';
 export { AudParameter } from './audio/AudParameter.js';
 export { AudSettings } from './audio/AudSettings.js';
 export { AudStaticDataRepository } from './audio/AudStaticDataRepository.js';
-export { AudUIPlayer } from './audio/AudUIPlayer.js';
+export { AudUIPlayer, UI_GAME_OBJ_ID } from './audio/AudUIPlayer.js';
 export { AudioCurveSetDriver } from './audio/AudioCurveSetDriver.js';
 export { LISTENER_GAME_OBJ_ID, SoundPrioritization } from './audio/SoundPrioritization.js';
 export { StretchAudio } from './audio/StretchAudio.js';

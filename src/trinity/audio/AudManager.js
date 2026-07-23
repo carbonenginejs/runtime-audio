@@ -59,6 +59,8 @@ export class AudManager extends CjsModel
 
   #callbackGameObjects = new Map();
 
+  #debugDisplayAllEmitters = false;
+
   // CarbonEngineJS-original: the prioritization is a public collaborator so
   // emitters can read weights directly (see AudGameObjResource notes).
   soundPrioritization = new SoundPrioritization();
@@ -430,6 +432,123 @@ export class AudManager extends CjsModel
   UpdateSettings(settings)
   {
     this.settings = settings;
+  }
+
+  /** Carbon method DisableAudioCulling: wake all objects, then disable prioritization. */
+  @carbon.method
+  @impl.implemented
+  DisableAudioCulling()
+  {
+    for (const object of this.soundPrioritization.GetGameObjects())
+    {
+      if (object.IsCulled?.())
+      {
+        object.Wake?.();
+      }
+    }
+    this.soundPrioritization.SetAudioCullingEnabled(false);
+    this.audioCullingEnabled = false;
+  }
+
+  /** Carbon method EnableAudioCulling. */
+  @carbon.method
+  @impl.implemented
+  EnableAudioCulling()
+  {
+    this.soundPrioritization.SetAudioCullingEnabled(true);
+    this.audioCullingEnabled = true;
+  }
+
+  /** Carbon debug method GetPrioritizedEmitters: defensive current-order snapshot. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("Carbon returns SoundPrioritization's current debug list; CarbonEngineJS returns a defensive array of the same current order.")
+  GetPrioritizedEmitters()
+  {
+    return this.soundPrioritization.GetGameObjects();
+  }
+
+  /** Carbon debug flag; renderer consumption remains optional. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("Carbon's native debug renderer reads a global flag; CarbonEngineJS retains the flag for an injected renderer.")
+  EnableDebugDisplayAllEmitters()
+  {
+    this.#debugDisplayAllEmitters = true;
+  }
+
+  /** Carbon debug flag; renderer consumption remains optional. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("Carbon's native debug renderer reads a global flag; CarbonEngineJS retains the flag for an injected renderer.")
+  DisableDebugDisplayAllEmitters()
+  {
+    this.#debugDisplayAllEmitters = false;
+  }
+
+  /** Carbon debug flag query. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("The value is available to browser renderers even though runtime-audio does not draw debug geometry.")
+  GetDebugDisplayAllEmitters()
+  {
+    return this.#debugDisplayAllEmitters;
+  }
+
+  /** Native Wwise output-device replacement has no WebAudio equivalent. */
+  @carbon.method
+  @impl.notSupported
+  EnableSpatialAudio()
+  {
+    return false;
+  }
+
+  /** Native Wwise output-device replacement has no WebAudio equivalent. */
+  @carbon.method
+  @impl.notSupported
+  DisableSpatialAudio()
+  {
+    return false;
+  }
+
+  /** OS/Wwise spatial-output support cannot be inferred from a WebAudio panner. */
+  @carbon.method
+  @impl.notSupported
+  SpatialAudioIsSupported()
+  {
+    return false;
+  }
+
+  /** Native audio-device callbacks have no owned browser equivalent. */
+  @carbon.method
+  @impl.notSupported
+  RegisterAudioDeviceChangeCallback(callback)
+  {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  @carbon.method
+  @impl.notSupported
+  StartProfilerCapture()
+  {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  @carbon.method
+  @impl.notSupported
+  StopProfilerCapture()
+  {
+    return false;
+  }
+
+  /** Native Wwise profiler capture is unavailable in WebAudio. */
+  @carbon.method
+  @impl.notSupported
+  IsProfilerCapturing()
+  {
+    return false;
   }
 
   /** Carbon method ResetCullingSettings. */

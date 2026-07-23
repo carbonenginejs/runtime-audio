@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const GRAPH_CLASSES = [
   "AudEmitter", "AudEventCurve", "AudEventKey", "AudGameObjResource",
-  "AudListener", "AudManager", "AudParameter", "AudSettings",
+  "AudListener", "AudManager", "AudMusicPlayer", "AudParameter", "AudSettings",
   "AudStaticDataRepository", "AudUIPlayer", "AudioCurveSetDriver",
   "SoundPrioritization", "StretchAudio",
   "Tr2AudioStretchAuto", "Tr2AudioStretchBase", "Tr2AudGeometryData"

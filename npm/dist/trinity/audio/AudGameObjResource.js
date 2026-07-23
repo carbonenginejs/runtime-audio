@@ -1,10 +1,11 @@
 import { identity as _identity, applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
 import { io, type, impl, carbon } from '@carbonenginejs/core-types/schema';
 import { CjsModel } from '@carbonenginejs/core-types/model';
+import { quat } from '@carbonenginejs/core-math/quat';
 import { vec3 } from '@carbonenginejs/core-math/vec3';
 import { SoundPrioritization as _SoundPrioritization } from './SoundPrioritization.js';
 
-let _initProto, _initClass, _init_eventPrefix, _init_extra_eventPrefix, _init_additionalCullingWeight, _init_extra_additionalCullingWeight, _init_ID, _init_extra_ID, _init_parameters, _init_extra_parameters, _init_name, _init_extra_name, _init_playingVitalSound, _init_extra_playingVitalSound, _init_playing2DSound, _init_extra_playing2DSound, _init_listenerInRange, _init_extra_listenerInRange, _init_isUsed, _init_extra_isUsed, _init_eventName, _init_extra_eventName, _init_cumulativeWeight, _init_extra_cumulativeWeight, _init_distanceFromListener, _init_extra_distanceFromListener, _init_scalingFactor, _init_extra_scalingFactor, _init_isVisible, _init_extra_isVisible, _init_forceCullingState, _init_extra_forceCullingState, _init_position, _init_extra_position;
+let _initProto, _initStatic, _initClass, _init_eventPrefix, _init_extra_eventPrefix, _init_additionalCullingWeight, _init_extra_additionalCullingWeight, _init_ID, _init_extra_ID, _init_parameters, _init_extra_parameters, _init_name, _init_extra_name, _init_playingVitalSound, _init_extra_playingVitalSound, _init_playing2DSound, _init_extra_playing2DSound, _init_listenerInRange, _init_extra_listenerInRange, _init_isUsed, _init_extra_isUsed, _init_eventName, _init_extra_eventName, _init_cumulativeWeight, _init_extra_cumulativeWeight, _init_distanceFromListener, _init_extra_distanceFromListener, _init_scalingFactor, _init_extra_scalingFactor, _init_isVisible, _init_extra_isVisible, _init_forceCullingState, _init_extra_forceCullingState, _init_position, _init_extra_position;
 
 // Wwise AK_INVALID_PLAYING_ID.
 const INVALID_PLAYING_ID = 0;
@@ -23,12 +24,13 @@ new class extends _identity {
   static [class AudGameObjResource extends CjsModel {
     static {
       ({
-        e: [_init_eventPrefix, _init_extra_eventPrefix, _init_additionalCullingWeight, _init_extra_additionalCullingWeight, _init_ID, _init_extra_ID, _init_parameters, _init_extra_parameters, _init_name, _init_extra_name, _init_playingVitalSound, _init_extra_playingVitalSound, _init_playing2DSound, _init_extra_playing2DSound, _init_listenerInRange, _init_extra_listenerInRange, _init_isUsed, _init_extra_isUsed, _init_eventName, _init_extra_eventName, _init_cumulativeWeight, _init_extra_cumulativeWeight, _init_distanceFromListener, _init_extra_distanceFromListener, _init_scalingFactor, _init_extra_scalingFactor, _init_isVisible, _init_extra_isVisible, _init_forceCullingState, _init_extra_forceCullingState, _init_position, _init_extra_position, _initProto],
+        e: [_init_eventPrefix, _init_extra_eventPrefix, _init_additionalCullingWeight, _init_extra_additionalCullingWeight, _init_ID, _init_extra_ID, _init_parameters, _init_extra_parameters, _init_name, _init_extra_name, _init_playingVitalSound, _init_extra_playingVitalSound, _init_playing2DSound, _init_extra_playing2DSound, _init_listenerInRange, _init_extra_listenerInRange, _init_isUsed, _init_extra_isUsed, _init_eventName, _init_extra_eventName, _init_cumulativeWeight, _init_extra_cumulativeWeight, _init_distanceFromListener, _init_extra_distanceFromListener, _init_scalingFactor, _init_extra_scalingFactor, _init_isVisible, _init_extra_isVisible, _init_forceCullingState, _init_extra_forceCullingState, _init_position, _init_extra_position, _initProto, _initStatic],
         c: [_AudGameObjResource, _initClass]
       } = _applyDecs2311(this, [type.define({
         className: "AudGameObjResource",
         family: "audio"
-      })], [[[io, io.persist, type, type.string], 16, "eventPrefix"], [[io, io.read, type, type.float32], 16, "additionalCullingWeight"], [[io, io.read, void 0, type.rawStruct("AkGameObjectID")], 16, "ID"], [[io, io.persist, void 0, type.list("AudParameter")], 16, "parameters"], [[io, io.notify, io, io.persist, type, type.string], 16, "name"], [[io, io.read, type, type.boolean], 16, "playingVitalSound"], [[io, io.read, type, type.boolean], 16, "playing2DSound"], [[io, io.read, type, type.boolean], 16, "listenerInRange"], [[io, io.read, type, type.boolean], 16, "isUsed"], [[io, io.notify, io, io.persist, type, type.string], 16, "eventName"], [[io, io.read, type, type.float32], 16, "cumulativeWeight"], [[io, io.read, type, type.float32], 16, "distanceFromListener"], [[io, io.persist, type, type.float32], 16, "scalingFactor"], [[io, io.read, type, type.boolean], 16, "isVisible"], [[io, io.read, type, type.boolean], 16, "forceCullingState"], [[impl, impl.adapted, void 0, impl.reason("Carbon routes this through Initialize(name, prefix, position) outside Blue serialization; CarbonEngineJS persists it for values interchange; OnModified derives placement from it."), io, io.persist, type, type.vec3], 16, "position"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Single method covers Carbon's no-arg and (name, prefix, position) overloads; backend registration is a no-op until realization.")], 18, "Initialize"], [[carbon, carbon.method, impl, impl.implemented], 18, "PostEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopSound"], [[carbon, carbon.method, impl, impl.implemented], 18, "BreakSound"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopAll"], [[carbon, carbon.method, impl, impl.implemented], 18, "ExecuteActionOnPlayingID"], [[carbon, carbon.method, impl, impl.implemented], 18, "MarkPlayingIDStoppedByRequest"], [[carbon, carbon.method, impl, impl.implemented], 18, "EventFinishedCallback"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetRTPC"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetSwitch"], [[carbon, carbon.method, impl, impl.implemented], 18, "Wake"], [[carbon, carbon.method, impl, impl.implemented], 18, "Cull"], [[carbon, carbon.method, impl, impl.implemented], 18, "IsCulled"], [[carbon, carbon.method, impl, impl.implemented], 18, "ForceCullingStateChange"], [[carbon, carbon.method, impl, impl.implemented], 18, "ReleaseForcedCullingState"], [[carbon, carbon.method, impl, impl.implemented], 18, "Mute"], [[carbon, carbon.method, impl, impl.implemented], 18, "Unmute"], [[carbon, carbon.method, impl, impl.implemented], 18, "IsMuted"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("The RH->LH conversion and Wwise SetPosition happen in the backend seam; the headless graph stores the position.")], 18, "SetPositionHelper"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetAttenuationScalingFactor"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetEventName"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetEventName"], [[carbon, carbon.method, impl, impl.implemented], 18, "ApplyEventStopRelationships"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterWwiseObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterWwiseObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateMaxAttenuationRadiusForEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetMaxAttenuationRadius"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateEventSoundPrioritizationAttributes"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon reads the weights through g_audioManager property delegates; CarbonEngineJS reads the manager's SoundPrioritization directly (same multiplied values).")], 18, "CalculateCullingWeight"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetCullingWeight"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetID"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetPosition"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetDistanceSqFromListener"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetPlayingEvents"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetSwitches"], [[impl, impl.custom, void 0, impl.reason("CarbonEngineJS-only accessor over private wake-queue state; Carbon exposes no equivalent read.")], 18, "GetEventsOnWake"], [[impl, impl.custom, void 0, impl.reason("CarbonEngineJS-only accessor over private one-shot state; Carbon exposes no equivalent read.")], 18, "GetWaitingOneShot"], [[impl, impl.custom, void 0, impl.reason("JS #private fields are not subclass-visible; AudEmitter.SetPosition sets Carbon's protected m_hasReceivedPosition through this accessor.")], 18, "MarkPositionReceived"], [[impl, impl.adapted, void 0, impl.reason("Carbon marks m_hasReceivedPosition in Initialize/SetPosition only; CarbonEngineJS also accepts it at values write time (the cooperative pipeline holds per-field knowledge only here - hooks are broad-safe and prop-less, core-types >= 0.12.0) so `from({ position })` emitters can Wake.")], 18, "SetValues"]], 0, void 0, CjsModel));
+      })], [[[io, io.persist, type, type.string], 16, "eventPrefix"], [[io, io.read, type, type.float32], 16, "additionalCullingWeight"], [[io, io.read, void 0, type.rawStruct("AkGameObjectID")], 16, "ID"], [[io, io.persist, void 0, type.list("AudParameter")], 16, "parameters"], [[io, io.notify, io, io.persist, type, type.string], 16, "name"], [[io, io.read, type, type.boolean], 16, "playingVitalSound"], [[io, io.read, type, type.boolean], 16, "playing2DSound"], [[io, io.read, type, type.boolean], 16, "listenerInRange"], [[io, io.read, type, type.boolean], 16, "isUsed"], [[io, io.notify, io, io.persist, type, type.string], 16, "eventName"], [[io, io.read, type, type.float32], 16, "cumulativeWeight"], [[io, io.read, type, type.float32], 16, "distanceFromListener"], [[io, io.persist, type, type.float32], 16, "scalingFactor"], [[io, io.read, type, type.boolean], 16, "isVisible"], [[io, io.read, type, type.boolean], 16, "forceCullingState"], [[impl, impl.adapted, void 0, impl.reason("Carbon routes this through Initialize(name, prefix, position) outside Blue serialization; CarbonEngineJS persists it for values interchange; OnModified derives placement from it."), io, io.persist, type, type.vec3], 16, "position"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Single method covers Carbon's no-arg and (name, prefix, position) overloads; backend registration is a no-op until realization.")], 18, "Initialize"], [[carbon, carbon.method, impl, impl.implemented], 18, "PostEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopSound"], [[carbon, carbon.method, impl, impl.implemented], 18, "BreakSound"], [[carbon, carbon.method, impl, impl.implemented], 18, "SeekOnEventPercent"], [[carbon, carbon.method, impl, impl.implemented], 18, "SeekOnEventMs"], [[carbon, carbon.method, impl, impl.implemented], 18, "StopAll"], [[carbon, carbon.method, impl, impl.implemented], 18, "ExecuteActionOnPlayingID"], [[carbon, carbon.method, impl, impl.implemented], 18, "MarkPlayingIDStoppedByRequest"], [[carbon, carbon.method, impl, impl.implemented], 18, "EventFinishedCallback"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetRTPC"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetSwitch"], [[carbon, carbon.method, impl, impl.implemented], 18, "Wake"], [[carbon, carbon.method, impl, impl.implemented], 18, "Cull"], [[carbon, carbon.method, impl, impl.implemented], 18, "IsCulled"], [[carbon, carbon.method, impl, impl.implemented], 18, "ForceCullingStateChange"], [[carbon, carbon.method, impl, impl.implemented], 18, "ReleaseForcedCullingState"], [[carbon, carbon.method, impl, impl.implemented], 18, "Mute"], [[carbon, carbon.method, impl, impl.implemented], 18, "Unmute"], [[carbon, carbon.method, impl, impl.implemented], 18, "IsMuted"], [[carbon, carbon.method, impl, impl.implemented], 26, "Orthonormalize"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("The RH->LH conversion and Wwise SetPosition happen in the backend seam; the headless graph stores the position.")], 18, "SetPlacementFromParent"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("The RH->LH conversion and Wwise call remain in the backend seam; the runtime owns the effective orientation buffers.")], 18, "ApplyEffectivePlacement"], [[carbon, carbon.method, impl, impl.implemented], 18, "HasAuthoredRotation"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon returns a value struct; CarbonEngineJS returns a stable object backed by owned buffers to avoid placement-path allocations.")], 18, "GetEffectiveOrientation"], [[carbon, carbon.method, impl, impl.implemented], 18, "RefreshPlacementFromRotation"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetAttenuationScalingFactor"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetEventName"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetEventName"], [[carbon, carbon.method, impl, impl.implemented], 18, "ApplyEventStopRelationships"], [[carbon, carbon.method, impl, impl.implemented], 18, "RegisterWwiseObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UnregisterWwiseObject"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateMaxAttenuationRadiusForEvent"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetMaxAttenuationRadius"], [[carbon, carbon.method, impl, impl.implemented], 18, "UpdateEventSoundPrioritizationAttributes"], [[carbon, carbon.method, impl, impl.adapted, void 0, impl.reason("Carbon reads the weights through g_audioManager property delegates; CarbonEngineJS reads the manager's SoundPrioritization directly (same multiplied values).")], 18, "CalculateCullingWeight"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetCullingWeight"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetID"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetPosition"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetFront"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetTop"], [[carbon, carbon.method, impl, impl.implemented], 18, "SetDistanceSqFromListener"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetPlayingEvents"], [[carbon, carbon.method, impl, impl.implemented], 18, "GetSwitches"], [[impl, impl.custom, void 0, impl.reason("CarbonEngineJS-only accessor over private wake-queue state; Carbon exposes no equivalent read.")], 18, "GetEventsOnWake"], [[impl, impl.custom, void 0, impl.reason("CarbonEngineJS-only accessor over private one-shot state; Carbon exposes no equivalent read.")], 18, "GetWaitingOneShot"], [[impl, impl.custom, void 0, impl.reason("JS #private fields are not subclass-visible; AudEmitter.SetPosition sets Carbon's protected m_hasReceivedPosition through this accessor.")], 18, "MarkPositionReceived"], [[impl, impl.custom, void 0, impl.reason("Carbon tests its FLT_MAX sentinel position; CarbonEngineJS tracks the equivalent state explicitly.")], 18, "HasReceivedPosition"], [[impl, impl.adapted, void 0, impl.reason("CjsModel hooks are broad-safe rather than field-addressed, so a cached quaternion detects the Carbon m_authoredRotation notification.")], 18, "OnModified"], [[impl, impl.adapted, void 0, impl.reason("Carbon marks m_hasReceivedPosition in Initialize/SetPosition only; CarbonEngineJS also accepts it at values write time (the cooperative pipeline holds per-field knowledge only here - hooks are broad-safe and prop-less, core-types >= 0.12.0) so `from({ position })` emitters can Wake.")], 18, "SetValues"]], 0, void 0, CjsModel));
+      _initStatic(this);
     }
     /** m_eventPrefix (std::wstring) [READWRITE, PERSIST] */
     eventPrefix = (_initProto(this), _init_eventPrefix(this, ""));
@@ -91,6 +93,20 @@ new class extends _identity {
     #switchValues = new Map();
     #waitingOneShotTime = 0;
     #waitingOneShotName = "";
+    #parentFront = vec3.fromValues(0, 0, 1);
+    #parentTop = vec3.fromValues(0, 1, 0);
+    #effectiveFront = vec3.fromValues(0, 0, 1);
+    #effectiveTop = vec3.fromValues(0, 1, 0);
+    #candidateFront = vec3.fromValues(0, 0, 1);
+    #candidateTop = vec3.fromValues(0, 1, 0);
+    #candidateOrientation = {
+      front: this.#candidateFront,
+      top: this.#candidateTop
+    };
+    #normalizedTop = vec3.fromValues(0, 1, 0);
+    #cross = vec3.fromValues(-1, 0, 0);
+    #normalizedRotation = quat.create();
+    #appliedRotation = quat.create();
 
     // Mirrors Carbon's two ctors: default generates an entity id; the protected
     // (AkGameObjectID) variant takes a fixed id (AudListener passes 4) so the
@@ -119,7 +135,7 @@ new class extends _identity {
         }
       }
       this.RegisterWwiseObject();
-      this.SetPositionHelper([1, 0, 0], [0, 1, 0], this.position);
+      this.SetPlacementFromParent([0, 0, 1], [0, 1, 0], this.position);
       if (this.eventName) {
         this.PostEvent(this.eventName);
       }
@@ -214,6 +230,22 @@ new class extends _identity {
       }
     }
 
+    /** Carbon method SeekOnEventPercent: seek a playing event owned by this object. */
+    SeekOnEventPercent(playingID, percentToSeek) {
+      if (!_AudGameObjResource.manager?.enabled || !this.#playingEvents.has(playingID)) {
+        return false;
+      }
+      return _AudGameObjResource.backend?.SeekOnEventPercent?.(playingID, percentToSeek) === true;
+    }
+
+    /** Carbon method SeekOnEventMs: seek a playing event owned by this object. */
+    SeekOnEventMs(playingID, msToSeek) {
+      if (!_AudGameObjResource.manager?.enabled || !this.#playingEvents.has(playingID)) {
+        return false;
+      }
+      return _AudGameObjResource.backend?.SeekOnEventMs?.(playingID, msToSeek) === true;
+    }
+
     /** Carbon method StopAll. */
     StopAll() {
       if (_AudGameObjResource.manager?.enabled) {
@@ -281,7 +313,7 @@ new class extends _identity {
         return;
       }
       this.RegisterWwiseObject();
-      this.SetPositionHelper([1, 0, 0], [0, 1, 0], this.position);
+      this.ApplyEffectivePlacement(this.#effectiveFront, this.#effectiveTop, this.position);
       this.#culled = false;
       if (this.#waitingOneShotName && this.listenerInRange) {
         this.PostEvent(this.#waitingOneShotName, true);
@@ -372,13 +404,67 @@ new class extends _identity {
       return this.#muted;
     }
 
-    /** Carbon method SetPositionHelper: position always stored; backend push (with RH->LH flip) is realization. */
-    SetPositionHelper(front, top, positionValue) {
+    /**
+     * Forces an orientation to unit-length, mutually perpendicular axes while
+     * preserving the supplied front direction.
+     */
+    static Orthonormalize(outFront, outTop, front, top, normalizedTop, cross) {
+      vec3.normalize(outFront, front);
+      vec3.normalize(normalizedTop, top);
+      vec3.cross(cross, outFront, normalizedTop);
+      vec3.cross(outTop, cross, outFront);
+      vec3.normalize(outTop, outTop);
+    }
+
+    /** Carbon method SetPlacementFromParent: stores the parent pose, resolves authored rotation, then applies it. */
+    SetPlacementFromParent(front, top, positionValue) {
+      vec3.copy(this.#parentFront, front);
+      vec3.copy(this.#parentTop, top);
+      const orientation = this.GetEffectiveOrientation();
+      return this.ApplyEffectivePlacement(orientation.front, orientation.top, positionValue);
+    }
+
+    /** Carbon method ApplyEffectivePlacement: corrects, stores, exposes, and pushes the effective pose. */
+    ApplyEffectivePlacement(front, top, positionValue) {
+      _AudGameObjResource.Orthonormalize(this.#effectiveFront, this.#effectiveTop, front, top, this.#normalizedTop, this.#cross);
       vec3.copy(this.position, positionValue);
+      if (this.front) {
+        vec3.copy(this.front, this.#effectiveFront);
+      }
+      if (this.top) {
+        vec3.copy(this.top, this.#effectiveTop);
+      }
+      if (this.rotation) {
+        quat.copy(this.#appliedRotation, this.rotation);
+      }
       if (_AudGameObjResource.manager?.enabled && this.#gameObjRegistered) {
-        _AudGameObjResource.backend?.SetPosition?.(this.ID, front, top, positionValue);
+        _AudGameObjResource.backend?.SetPosition?.(this.ID, this.#effectiveFront, this.#effectiveTop, this.position);
       }
       return 1;
+    }
+
+    /** Carbon method HasAuthoredRotation. */
+    HasAuthoredRotation() {
+      return Boolean(this.rotation && (this.rotation[0] !== 0 || this.rotation[1] !== 0 || this.rotation[2] !== 0 || this.rotation[3] !== 1));
+    }
+
+    /** Carbon method GetEffectiveOrientation: resolves parent axes through authored rotation into owned buffers. */
+    GetEffectiveOrientation() {
+      if (!this.HasAuthoredRotation() || quat.squaredLength(this.rotation) <= 0) {
+        vec3.copy(this.#candidateFront, this.#parentFront);
+        vec3.copy(this.#candidateTop, this.#parentTop);
+        return this.#candidateOrientation;
+      }
+      quat.normalize(this.#normalizedRotation, this.rotation);
+      vec3.transformQuat(this.#candidateFront, this.#parentFront, this.#normalizedRotation);
+      vec3.transformQuat(this.#candidateTop, this.#parentTop, this.#normalizedRotation);
+      return this.#candidateOrientation;
+    }
+
+    /** Carbon method RefreshPlacementFromRotation. */
+    RefreshPlacementFromRotation() {
+      const orientation = this.GetEffectiveOrientation();
+      return this.ApplyEffectivePlacement(orientation.front, orientation.top, this.position);
     }
 
     /** Carbon method SetAttenuationScalingFactor: stored only when live-applied (Carbon parity). */
@@ -521,6 +607,16 @@ new class extends _identity {
       return this.position;
     }
 
+    /** Carbon method GetFront. */
+    GetFront() {
+      return this.#effectiveFront;
+    }
+
+    /** Carbon method GetTop. */
+    GetTop() {
+      return this.#effectiveTop;
+    }
+
     /** Carbon method SetDistanceSqFromListener. */
     SetDistanceSqFromListener(distanceSq) {
       this.distanceFromListener = distanceSq;
@@ -549,6 +645,22 @@ new class extends _identity {
     /** Marks the object as positioned (C++ protected m_hasReceivedPosition; unblocks Wake). */
     MarkPositionReceived() {
       this.#hasReceivedPosition = true;
+    }
+
+    /** Whether the placement gate required by Wake/event curves has been satisfied. */
+    HasReceivedPosition() {
+      return this.#hasReceivedPosition;
+    }
+
+    /** Values settle hook: changing authored rotation immediately refreshes the effective placement. */
+    OnModified(options = {}) {
+      for (const parameter of this.parameters) {
+        parameter?.SetGameObjectID?.(this.ID);
+      }
+      if (this.rotation && !quat.exactEquals(this.rotation, this.#appliedRotation)) {
+        this.RefreshPlacementFromRotation();
+      }
+      return super.OnModified(options);
     }
 
     /** Values write hook: a supplied position counts as received placement. */
