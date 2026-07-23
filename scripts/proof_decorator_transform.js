@@ -70,5 +70,7 @@ await buildSourceBundle();
 
 const source = await import(pathToFileURL(sourceBundle));
 const dist = await import(pathToFileURL(distEntry));
-assert.deepEqual(source.capture(), dist.capture());
+// Default model values may themselves be class instances from the source and
+// dist module graphs. The proof compares their data, not constructor identity.
+assert.deepEqual(structuredClone(source.capture()), structuredClone(dist.capture()));
 console.log("decorator transform proof passed for all audio classes");

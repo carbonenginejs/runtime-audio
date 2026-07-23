@@ -9,7 +9,9 @@ import {
   AudioCurveSetDriver,
   AudListener,
   AudManager,
+  AudMusicPlayer,
   AudParameter,
+  AudUIPlayer,
   StretchAudio,
   Tr2AudioStretchAuto,
   Tr2AudioStretchBase
@@ -27,6 +29,8 @@ test("real Carbon audio classes are exported with their Carbon families", () =>
     [AudParameter, "AudParameter", "audio"],
     [AudioCurveSetDriver, "AudioCurveSetDriver", "audio"],
     [AudManager, "AudManager", "audio"],
+    [AudMusicPlayer, "AudMusicPlayer", "audio"],
+    [AudUIPlayer, "AudUIPlayer", "audio"],
     [StretchAudio, "StretchAudio", "audio"],
     [Tr2AudioStretchBase, "Tr2AudioStretchBase", "trinityAudio"],
     [Tr2AudioStretchAuto, "Tr2AudioStretchAuto", "trinityAudio"]
@@ -41,6 +45,8 @@ test("real Carbon audio classes are exported with their Carbon families", () =>
   // Carbon base-class relationships survive generation.
   assert.ok(new AudEmitter() instanceof AudGameObjResource, "AudEmitter extends AudGameObjResource");
   assert.ok(new AudListener() instanceof AudGameObjResource, "AudListener extends AudGameObjResource");
+  assert.ok(new AudMusicPlayer() instanceof AudEmitter, "AudMusicPlayer extends AudEmitter");
+  assert.ok(new AudUIPlayer() instanceof AudEmitter, "AudUIPlayer extends AudEmitter");
   assert.ok(new Tr2AudioStretchAuto() instanceof Tr2AudioStretchBase, "Tr2AudioStretchAuto extends Tr2AudioStretchBase");
 });
 
@@ -70,6 +76,27 @@ test("audio graph hydrates and round-trips headlessly", () =>
   assert.deepEqual(Array.from(values.position), [1, 2, 3]);
 });
 
+test("AudEmitter resolves authored rotation over its parent placement", () =>
+{
+  const emitter = new AudEmitter();
+  emitter.SetPlacement([0, 0, 2], [0, 3, 1], [4, 5, 6]);
+
+  assert.deepEqual(Array.from(emitter.front, value => value || 0), [0, 0, 1]);
+  assert.deepEqual(Array.from(emitter.top, value => value || 0), [0, 1, 0]);
+  assert.deepEqual(Array.from(emitter.position), [4, 5, 6]);
+
+  const halfSqrt = Math.SQRT1_2;
+  emitter.SetValues({ rotation: [0, halfSqrt, 0, halfSqrt] });
+
+  assert.ok(Math.abs(emitter.front[0] - 1) < 1e-6);
+  assert.ok(Math.abs(emitter.front[1]) < 1e-6);
+  assert.ok(Math.abs(emitter.front[2]) < 1e-6);
+  assert.ok(Math.abs(emitter.top[0]) < 1e-6);
+  assert.ok(Math.abs(emitter.top[1] - 1) < 1e-6);
+  assert.ok(Math.abs(emitter.top[2]) < 1e-6);
+  assert.deepEqual(Array.from(emitter.position), [4, 5, 6]);
+});
+
 
 test("AudEventCurve hydrates typed AudEventKey children", () =>
 {
@@ -82,6 +109,25 @@ test("AudEventCurve hydrates typed AudEventKey children", () =>
 
   const values = curve.GetValues();
   assert.equal(values.keys[0].value, "play_boost");
+});
+
+test("Tr2AudioStretchAuto owns its three emitters and trigger methods", () =>
+{
+  const stretch = new Tr2AudioStretchAuto();
+  assert.equal(stretch.FindEmitterByName("stretch_source_sfx"), stretch.sourceEmitter);
+  assert.equal(stretch.FindEmitterByName("stretch_dest_sfx"), stretch.destinationEmitter);
+  assert.equal(stretch.FindEmitterByName("stretch_mid_sfx"), stretch.stretchEmitter);
+  const events = [];
+  stretch.sourceEmitter.SendEvent = value => (events.push(value), 1);
+  stretch.destinationEmitter.SendEvent = value => (events.push(value), 2);
+  stretch.stretchEmitter.SendEvent = value => (events.push(value), 3);
+  stretch.outburstEvent = "outburst";
+  stretch.impactEvent = "impact";
+  stretch.stretchEvent = "stretch";
+  assert.equal(stretch.TriggerOutburstEvent(), 1);
+  assert.equal(stretch.TriggerImpactEvent(), 2);
+  assert.equal(stretch.TriggerStretchEvent(), 3);
+  assert.deepEqual(events, [ "outburst", "impact", "stretch" ]);
 });
 
 

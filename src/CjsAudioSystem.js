@@ -7,6 +7,7 @@
 // pass one (or a factory) only when sound should actually be realized. Without
 // it, the graph runs in Carbon's null-manager/headless mode untouched.
 import { AudGameObjResource } from "./trinity/audio/AudGameObjResource.js";
+import { AudEmitter } from "./trinity/audio/AudEmitter.js";
 import { AudManager } from "./trinity/audio/AudManager.js";
 import { AudStaticDataRepository } from "./trinity/audio/AudStaticDataRepository.js";
 import { CjsAudioBackend } from "./CjsAudioBackend.js";
@@ -15,6 +16,26 @@ import { CjsMusicEngine } from "./CjsMusicEngine.js";
 /** Audio system composition root: repository + manager + backend, attached to the graph seams. */
 export class CjsAudioSystem
 {
+    /** Validates the small host-owned music-engine contract. */
+    static ValidateMusicEngine(engine)
+    {
+        if (engine === null || engine === undefined)
+        {
+            return null;
+        }
+        if (typeof engine?.then === "function")
+        {
+            throw new TypeError("A music-engine factory must return an engine synchronously.");
+        }
+        const required = [ "HandlesEvent", "PostEvent", "ExecuteAction", "Process", "Dispose" ];
+        const missing = required.filter(name => typeof engine[name] !== "function");
+        if (missing.length)
+        {
+            throw new TypeError(`A music engine must implement: ${required.join(", ")}. Missing: ${missing.join(", ")}.`);
+        }
+        return engine;
+    }
+
     manager = new AudManager();
 
     repository = new AudStaticDataRepository();
@@ -35,13 +56,34 @@ export class CjsAudioSystem
 
     #loadMedia = null;
 
-    constructor({ createContext, loadBuffer, audioMetadata, distanceScale, musicGraph, loadMedia } = {})
+    #createMusicEngine = null;
+
+    #providedMusicEngine = null;
+
+    #applyRTPC = null;
+
+    #adoptedEmitters = new Set();
+
+    constructor({
+        createContext,
+        loadBuffer,
+        audioMetadata,
+        distanceScale,
+        musicGraph,
+        loadMedia,
+        musicEngine,
+        createMusicEngine,
+        applyRTPC
+    } = {})
     {
         this.#createContext = createContext ?? null;
         this.#loadBuffer = loadBuffer ?? null;
         this.#distanceScale = Number(distanceScale) || 1;
         this.#musicGraph = musicGraph ?? null;
         this.#loadMedia = loadMedia ?? null;
+        this.#providedMusicEngine = musicEngine ?? null;
+        this.#createMusicEngine = typeof createMusicEngine === "function" ? createMusicEngine : null;
+        this.#applyRTPC = typeof applyRTPC === "function" ? applyRTPC : null;
         if (audioMetadata)
         {
             this.repository.Initialize(audioMetadata);
@@ -88,18 +130,36 @@ export class CjsAudioSystem
                     context,
                     loadBuffer: this.#loadBuffer,
                     isLoop: eventName => this.repository.EventIsLoop(eventName),
-                    distanceScale: this.#distanceScale
+                    distanceScale: this.#distanceScale,
+                    applyRTPC: this.#applyRTPC
                 });
-                if (this.#musicGraph && !this.musicEngine)
+                if (!this.musicEngine)
                 {
-                    this.musicEngine = new CjsMusicEngine({
-                        graph: this.#musicGraph,
-                        context,
-                        loadMedia: this.#loadMedia,
-                        destination: this.backend.masterGain ?? context.destination
-                    });
+                    const destination = this.backend.masterGain ?? context.destination;
+                    if (this.#providedMusicEngine)
+                    {
+                        this.musicEngine = CjsAudioSystem.ValidateMusicEngine(this.#providedMusicEngine);
+                    }
+                    else if (this.#createMusicEngine)
+                    {
+                        this.musicEngine = CjsAudioSystem.ValidateMusicEngine(this.#createMusicEngine({
+                            context,
+                            destination,
+                            graph: this.#musicGraph,
+                            loadMedia: this.#loadMedia
+                        }));
+                    }
+                    else if (this.#musicGraph)
+                    {
+                        this.musicEngine = new CjsMusicEngine({
+                            graph: this.#musicGraph,
+                            context,
+                            loadMedia: this.#loadMedia,
+                            destination
+                        });
+                    }
                 }
-                this.backend.musicEngine = this.musicEngine;
+                this.backend.SetMusicEngine(this.musicEngine);
             }
         }
         if (this.#attached)
@@ -120,5 +180,172 @@ export class CjsAudioSystem
     Process(now)
     {
         this.manager.Process(now);
+    }
+
+    /**
+     * Replaces the optional music engine. Applications can inject an engine
+     * backed by WebAudio buffers, HTMLMediaElement streaming, or another host
+     * source as long as it implements the documented music-engine contract.
+     */
+    SetMusicEngine(engine, { disposePrevious = true } = {})
+    {
+        const next = CjsAudioSystem.ValidateMusicEngine(engine);
+        const previous = this.musicEngine;
+        if (previous === next)
+        {
+            return next;
+        }
+        this.backend?.SetMusicEngine(null);
+        if (disposePrevious)
+        {
+            previous?.Dispose?.();
+        }
+        this.musicEngine = next;
+        this.#providedMusicEngine = next;
+        this.backend?.SetMusicEngine(next);
+        return next;
+    }
+
+    /** Posts an event directly to the injected/built-in music engine. */
+    PostMusicEvent(eventName, onFinished)
+    {
+        return this.backend?.PostMusicEvent(eventName, onFinished) ?? 0;
+    }
+
+    /** Stops a directly posted or emitter-routed music event. */
+    StopMusicEvent(playingID, fadeOutDuration = 1000)
+    {
+        return this.backend?.StopMusicEvent(playingID, fadeOutDuration) ?? false;
+    }
+
+    /** Releases one decoded source from the built-in music cache. */
+    ReleaseMusicMedia(sourceId)
+    {
+        return this.musicEngine?.ReleaseMedia?.(sourceId) ?? false;
+    }
+
+    /** Releases all inactive decoded sources retained by the music engine. */
+    ClearMusicMedia()
+    {
+        return this.musicEngine?.ClearMedia?.() ?? 0;
+    }
+
+    /** Creates and adopts one Carbon AudEmitter from a plain descriptor. */
+    CreateEmitter(descriptor = {})
+    {
+        const values = { ...descriptor };
+        if (values.eventPrefix === undefined && values.prefix !== undefined)
+        {
+            values.eventPrefix = values.prefix;
+        }
+        if (values.scalingFactor === undefined && values.attenuationScalingFactor !== undefined)
+        {
+            values.scalingFactor = values.attenuationScalingFactor;
+        }
+        delete values.prefix;
+        delete values.attenuationScalingFactor;
+        return this.AdoptEmitter(AudEmitter.from(values));
+    }
+
+    /**
+     * Registers an emitter constructed before system attachment. Idempotent
+     * for the same object and rejects a different object reusing its ID.
+     */
+    AdoptEmitter(emitter)
+    {
+        if (!(emitter instanceof AudGameObjResource))
+        {
+            throw new TypeError("CjsAudioSystem.AdoptEmitter requires an AudGameObjResource.");
+        }
+        const existing = this.manager.GetAudioEmitter(emitter.ID);
+        if (existing && existing !== emitter)
+        {
+            throw new Error(`Audio game-object ID ${emitter.ID} is already registered.`);
+        }
+        if (!existing)
+        {
+            this.manager.RegisterGameObject(emitter.ID, emitter);
+        }
+        emitter.UpdateValues({ skipEvents: true });
+        this.#adoptedEmitters.add(emitter);
+        if (this.manager.enabled)
+        {
+            emitter.Wake();
+        }
+        return emitter;
+    }
+
+    /** Adopts every audio game object reachable from a schema graph. */
+    AdoptGraph(root)
+    {
+        const adopted = [];
+        if (root instanceof AudGameObjResource)
+        {
+            adopted.push(this.AdoptEmitter(root));
+        }
+        else
+        {
+            root?.Traverse?.(model =>
+            {
+                if (model instanceof AudGameObjResource)
+                {
+                    adopted.push(this.AdoptEmitter(model));
+                }
+            });
+        }
+        return adopted;
+    }
+
+    /** Stops and unregisters an adopted emitter. */
+    ReleaseEmitter(emitter)
+    {
+        if (!(emitter instanceof AudGameObjResource))
+        {
+            return false;
+        }
+        emitter.StopAll();
+        emitter.UnregisterWwiseObject();
+        this.manager.RemoveCallbackGameObject(emitter.ID);
+        this.manager.UnregisterGameObject(emitter.ID);
+        this.#adoptedEmitters.delete(emitter);
+        return true;
+    }
+
+    /** Releases every adopted audio game object reachable from a schema graph. */
+    ReleaseGraph(root)
+    {
+        const released = [];
+        if (root instanceof AudGameObjResource)
+        {
+            if (this.ReleaseEmitter(root)) released.push(root);
+        }
+        else
+        {
+            root?.Traverse?.(model =>
+            {
+                if (model instanceof AudGameObjResource && this.ReleaseEmitter(model))
+                {
+                    released.push(model);
+                }
+            });
+        }
+        return released;
+    }
+
+    /** Stops music, releases its decoded cache, and detaches graph seams. */
+    Dispose()
+    {
+        this.manager.StopAll();
+        for (const emitter of [ ...this.#adoptedEmitters ])
+        {
+            this.ReleaseEmitter(emitter);
+        }
+        this.backend?.SetMusicEngine(null);
+        this.musicEngine?.Dispose?.();
+        this.musicEngine = null;
+        this.#providedMusicEngine = null;
+        this.backend?.Dispose?.();
+        this.backend = null;
+        this.Detach();
     }
 }

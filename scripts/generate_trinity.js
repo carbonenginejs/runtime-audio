@@ -1,16 +1,18 @@
 // Generates the data-only Carbon audio classes owned by runtime-audio
-// (see src/trinity/README.md and .agents/CLASS-OWNERSHIP.md) from the
-// format-carbon schema, reusing the same classTool API as
+// (see docs/architecture.md and docs/reference/carbon-compatibility.md) from the
+// tools-core's current Carbon schema build, reusing the same classTool API as
 // runtime-trinity/scripts/regenerate_generated.js. trinityAudio is already
 // hand-owned in src/trinity/trinityAudio and is not re-emitted here.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { deriveExpectedFields, loadSchemaDoc, renderClassFile, schemaBaseClassForDoc } from "../../format-carbon/src/core/classTool.js";
+import { deriveExpectedFields, loadSchemaDoc, renderClassFile, schemaBaseClassForDoc } from "../../tools-core/src/schema/core/classTool.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = path.resolve(root, "..");
-const schemaRoot = path.join(workspaceRoot, "format-carbon", "src", "schema");
+const schemaRoot = path.resolve(
+  process.env.CARBON_SCHEMA_ROOT
+    ?? path.join(workspaceRoot, "tools-core", ".scratch", "schema-build"));
 const outRoot = path.join(root, "src", "trinity");
 const GENERATED_FAMILIES = ["audio", "trinityAudioApi"];
 // Hand-owned files are never (re-)generated or deleted; behavior ports live
@@ -21,17 +23,19 @@ const HAND_OWNED_CLASSES = new Set([
   "AudEventCurve",
   "AudioCurveSetDriver",
   "AudManager",
+  "AudMusicPlayer",
+  "AudParameter",
   "StretchAudio",
   "AudGameObjResource",
   "AudListener",
   "AudStaticDataRepository",
+  "AudUIPlayer",
   "SoundPrioritization",
   "Tr2AudioStretchAuto",
   "Tr2AudioStretchBase"
 ]);
 
-// Port-review outcomes 2026-07-18 (fidelity + authored-value review, C++
-// verified; see src/trinity/README.md "Port review"):
+// Reviewed fidelity and authored-value outcomes:
 // - TRIMMED_CLASSES: native Wwise/OS plumbing, editor tooling, or runtime/
 //   debug telemetry with no data-graph value (verdicts cite the C++ Blue
 //   exposure: attribute-less, interface-only, or not Blue at all).
@@ -42,6 +46,7 @@ const TRIMMED_CLASSES = new Set([
   "AudActionRecordSetRTPC",
   "AudActionRecordSetState",
   "AudActionRecordSetSwitch",
+  "AudGeometry",
   "AudPathResolver",
   "AudPosition",
   "AudioInputMgr",
@@ -49,8 +54,10 @@ const TRIMMED_CLASSES = new Set([
   "IAudioInputMgr",
   "LowLevelIOHook",
   "MonitoredParameterInfo",
+  "RH2LH",
   "SoundBankInfo",
   "SoundPrioritization",
+  "SpatialAudioSettings",
   "StringUtils",
   "WaapiManager"
 ]);
@@ -133,6 +140,12 @@ function writeFile(file, text) {
 const summary = { generated: 0, skipped: [], errors: [], families: {} };
 const prepared = [];
 const emittable = new Set();
+
+if (!fs.existsSync(schemaRoot)) {
+  throw new Error(
+    `Missing Carbon schema build: ${schemaRoot}. Run "npm.cmd run schema:build" in tools-core, `
+    + "or set CARBON_SCHEMA_ROOT to a current tools-core schema build.");
+}
 
 for (const family of GENERATED_FAMILIES) {
   const familyDir = path.join(schemaRoot, family);

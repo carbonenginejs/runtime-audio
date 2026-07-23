@@ -1,7 +1,7 @@
 {
   "name": "@carbonenginejs/runtime-audio",
   "version": "0.1.1",
-  "description": "Headless audio graph and data contracts for CarbonEngineJS (data-only Carbon Aud* classes, importable alone via ./trinity) plus the CjsAudio* WebAudio realization.",
+  "description": "Complete CarbonEngineJS audio domain with a graph-only ./trinity entry and optional Web Audio realization.",
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
@@ -17,6 +17,13 @@
     "@carbonenginejs/core-types": "^0.12.0",
     "@carbonenginejs/runtime-const": "^0.1.0"
   },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"

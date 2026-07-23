@@ -1,9 +1,8 @@
 // CarbonEngineJS original (no Carbon counterpart). Interactive-music engine:
-// interprets the authored Wwise music graph (extracted offline by
-// scripts/build_music_graph.js) the way AK::MusicEngine would in the real
-// client. Carbon's C++ contributes no musical intelligence (InitMusic is dead
-// code; see .agents/handoff/2026-07-19-dynamic-music-research.md) - the game
-// only posts events and sets switches/states, so this engine's fidelity
+// interprets the authored Wwise music graph produced in tools-core's complete
+// audio-library build the way AK::MusicEngine would in the real client.
+// Carbon's C++ contributes no musical intelligence (InitMusic is dead code);
+// the game only posts events and sets switches/states, so this engine's fidelity
 // target is the bank data, not Carbon code.
 //
 // v1 semantics (documented simplifications):
@@ -161,6 +160,8 @@ class MusicInstance
         this.scheduledThrough = 0;
         this.active = [];
         this.stopped = false;
+        this.stopAt = null;
+        this.finished = false;
         this.exhausted = false;
         // Latest scheduled segment's musical timeline (for sync quantization):
         // { startCtx (ctx time of segment position 0), meter }.
@@ -191,6 +192,8 @@ export class CjsMusicEngine
 
     #nextScheduleId = 1;
 
+    #epoch = 0;
+
     constructor({ graph, context, loadMedia, destination, random } = {})
     {
         this.#graph = graph ?? null;
@@ -220,6 +223,68 @@ export class CjsMusicEngine
         {
             gain.value = Math.max(0, Math.min(1, Number(value) || 0));
         }
+    }
+
+    /**
+     * Replaces the authored graph and optional loader. Active playback is
+     * cancelled before the new graph becomes visible; stale async loads are
+     * rejected by the engine epoch.
+     */
+    SetGraph(graph, { loadMedia = this.#loadMedia } = {})
+    {
+        this.StopAll(0);
+        this.#epoch++;
+        this.#graph = graph ?? null;
+        this.#loadMedia = loadMedia ?? null;
+        this.#switchValues.clear();
+        this.ClearMedia();
+        return this;
+    }
+
+    /** Stops every active music instance. */
+    StopAll(fadeOutDuration = 0)
+    {
+        const ms = Number(fadeOutDuration);
+        const seconds = Number.isFinite(ms) ? Math.max(0, ms) / 1000 : 0;
+        for (const instance of [ ...this.#instances.values() ])
+        {
+            this.#StopInstance(instance, seconds);
+        }
+    }
+
+    /** Releases one decoded-buffer promise from the source cache. */
+    ReleaseMedia(sourceId)
+    {
+        return this.#buffers.delete(sourceId);
+    }
+
+    /** Releases every decoded-buffer promise and returns the removed count. */
+    ClearMedia()
+    {
+        const count = this.#buffers.size;
+        this.#buffers.clear();
+        return count;
+    }
+
+    /** Active decoded-media cache size. */
+    GetCachedMediaCount()
+    {
+        return this.#buffers.size;
+    }
+
+    /** Cancels playback and releases graph-owned WebAudio/cache state. */
+    Dispose()
+    {
+        this.StopAll(0);
+        this.#epoch++;
+        this.ClearMedia();
+        this.#switchValues.clear();
+        this.#musicGain?.disconnect?.();
+        this.#musicGain = null;
+        this.#graph = null;
+        this.#loadMedia = null;
+        this.#destination = null;
+        this.#context = null;
     }
 
     /** True when this engine owns the event (play/stop target or switch/state setter). */
@@ -321,7 +386,14 @@ export class CjsMusicEngine
         const now = this.#context.currentTime;
         for (const instance of [ ...this.#instances.values() ])
         {
-            if (instance.stopped) continue;
+            if (instance.stopped)
+            {
+                if (instance.stopAt === null || now >= instance.stopAt)
+                {
+                    this.#FinalizeInstance(instance);
+                }
+                continue;
+            }
             if (instance.iterator === null)
             {
                 // Silent state (target resolves to nothing): stay alive and
@@ -736,21 +808,40 @@ export class CjsMusicEngine
         if (durationMs <= 0) return;
         const entry = { source: null, cancelled: false };
         scheduled.sources.push(entry);
+        const epoch = this.#epoch;
         Promise.resolve(this.#LoadBuffer(clip.sourceId, track)).then(buffer =>
         {
-            if (!buffer || entry.cancelled || instance.stopped) return;
+            if (!buffer || entry.cancelled || instance.stopped || epoch !== this.#epoch) return;
+            let resolvedWhen = when;
+            let resolvedOffsetMs = offsetMs;
+            if (resolvedWhen < context.currentTime)
+            {
+                resolvedOffsetMs += (context.currentTime - resolvedWhen) * 1000;
+                resolvedWhen = context.currentTime;
+            }
+            const resolvedDurationMs = audibleEndMs - audibleStartMs - (resolvedOffsetMs - clip.beginTrimOffset);
+            if (resolvedDurationMs <= 0) return;
             const source = context.createBufferSource();
             source.buffer = buffer;
             source.connect(scheduled.gain);
             entry.source = source;
-            source.start(when, Math.max(0, offsetMs) / 1000, durationMs / 1000);
+            source.start(resolvedWhen, Math.max(0, resolvedOffsetMs) / 1000, resolvedDurationMs / 1000);
         }).catch(() => {});
     }
 
     #LoadBuffer(sourceId, track)
     {
         if (this.#buffers.has(sourceId)) return this.#buffers.get(sourceId);
-        const pending = Promise.resolve(this.#loadMedia?.(sourceId, track)).catch(() => null);
+        const pending = Promise.resolve(this.#loadMedia?.(sourceId, track))
+            .catch(() => null)
+            .then(buffer =>
+            {
+                if (!buffer && this.#buffers.get(sourceId) === pending)
+                {
+                    this.#buffers.delete(sourceId);
+                }
+                return buffer;
+            });
         this.#buffers.set(sourceId, pending);
         return pending;
     }
@@ -803,15 +894,28 @@ export class CjsMusicEngine
             this.#FadeOutSources(active, now, fadeSeconds);
         }
         instance.active = [];
-        this.#instances.delete(instance.playingID);
-        instance.gain?.disconnect?.();
-        instance.onFinished?.();
+        if (fadeSeconds > 0)
+        {
+            instance.stopAt = now + fadeSeconds;
+        }
+        else
+        {
+            this.#FinalizeInstance(instance);
+        }
     }
 
     #FinishInstance(instance)
     {
-        if (instance.stopped) return;
+        if (instance.finished) return;
         instance.stopped = true;
+        instance.stopAt = null;
+        this.#FinalizeInstance(instance);
+    }
+
+    #FinalizeInstance(instance)
+    {
+        if (instance.finished) return;
+        instance.finished = true;
         this.#instances.delete(instance.playingID);
         instance.gain?.disconnect?.();
         instance.onFinished?.();

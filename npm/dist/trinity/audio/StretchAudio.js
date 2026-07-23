@@ -1,14 +1,11 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
 import { io, type, carbon, impl } from '@carbonenginejs/core-types/schema';
 import { CjsModel } from '@carbonenginejs/core-types/model';
+import { vec3 } from '@carbonenginejs/core-math/vec3';
 import { AudEmitter as _AudEmitter } from './AudEmitter.js';
 import { AudGameObjResource as _AudGameObjResource } from './AudGameObjResource.js';
 
 let _initProto, _initClass, _init_stretchEmitter, _init_extra_stretchEmitter, _init_destinationEmitter, _init_extra_destinationEmitter, _init_sourceEmitter, _init_extra_sourceEmitter, _init_impactEvent, _init_extra_impactEvent, _init_outburstEvent, _init_extra_outburstEvent, _init_stretchEvent, _init_extra_stretchEvent, _init_shotMissedEvent, _init_extra_shotMissedEvent;
-
-// Carbon positions all three stretch emitters with fixed axes (+Y front, +Z top).
-const FRONT = [0, 1, 0];
-const TOP = [0, 0, 1];
 
 /** StretchAudio (audio) - three-emitter beam audio (source/dest/stretch), listener projected onto the segment. */
 let _StretchAudio;
@@ -44,6 +41,8 @@ class StretchAudio extends CjsModel {
   shotMissedEvent = (_init_extra_stretchEvent(this), _init_shotMissedEvent(this, ""));
   #shotMissed = (_init_extra_shotMissedEvent(this), false);
   #listener = null;
+  #front = vec3.fromValues(0, 1, 0);
+  #top = vec3.fromValues(0, 0, 1);
 
   /** Carbon method Initialize: create the three named emitters when absent. */
   Initialize() {
@@ -86,11 +85,39 @@ class StretchAudio extends CjsModel {
     if (!_AudGameObjResource.manager?.enabled) {
       return;
     }
-    this.sourceEmitter?.SetPosition(FRONT, TOP, sourcePosition);
-    this.destinationEmitter?.SetPosition(FRONT, TOP, destPosition);
+    _StretchAudio.GetStretchOrientation(sourcePosition, destPosition, this.#front, this.#top);
+    this.sourceEmitter?.SetPosition(this.#front, this.#top, sourcePosition);
+    this.destinationEmitter?.SetPosition(this.#front, this.#top, destPosition);
     if (this.stretchEmitter) {
-      this.stretchEmitter.SetPosition(FRONT, TOP, this.ProjectListenerOntoSegment(sourcePosition, destPosition));
+      this.stretchEmitter.SetPosition(this.#front, this.#top, this.ProjectListenerOntoSegment(sourcePosition, destPosition));
     }
+  }
+
+  /**
+   * Derives a stable beam orientation from source to destination. The top axis
+   * prefers +Z, falling back to +Y when the segment is parallel to it.
+   */
+  static GetStretchOrientation(sourcePosition, destPosition, front, top) {
+    const segmentX = destPosition[0] - sourcePosition[0];
+    const segmentY = destPosition[1] - sourcePosition[1];
+    const segmentZ = destPosition[2] - sourcePosition[2];
+    const lengthSquared = segmentX * segmentX + segmentY * segmentY + segmentZ * segmentZ;
+    if (lengthSquared < 1e-6) {
+      vec3.set(front, 0, 1, 0);
+      vec3.set(top, 0, 0, 1);
+      return;
+    }
+    const inverseLength = 1 / Math.sqrt(lengthSquared);
+    vec3.set(front, segmentX * inverseLength, segmentY * inverseLength, segmentZ * inverseLength);
+    let preferredDot = front[2];
+    vec3.set(top, -front[0] * preferredDot, -front[1] * preferredDot, 1 - front[2] * preferredDot);
+    let topLengthSquared = vec3.squaredLength(top);
+    if (topLengthSquared < 1e-6) {
+      preferredDot = front[1];
+      vec3.set(top, -front[0] * preferredDot, 1 - front[1] * preferredDot, -front[2] * preferredDot);
+      topLengthSquared = vec3.squaredLength(top);
+    }
+    vec3.scale(top, top, 1 / Math.sqrt(topLengthSquared));
   }
 
   // t = dot(L-S, D-S) / |D-S|^2 clamped to [0,1]; degenerate segment

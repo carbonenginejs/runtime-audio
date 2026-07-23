@@ -3,12 +3,30 @@
 // Hand-owned since 2026-07-18 (behavior port); the generator skips this file.
 // Verify against audio/AudEmitter.json.
 import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
+import { quat } from "@carbonenginejs/core-math/quat";
+import { vec3 } from "@carbonenginejs/core-math/vec3";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 
 /** AudEmitter (audio) - the concrete content-facing emitter (ITr2AudEmitter). */
 @type.define({ className: "AudEmitter", family: "audio" })
 export class AudEmitter extends AudGameObjResource
 {
+
+  /** m_authoredRotation (Quaternion) [READWRITE, PERSIST, NOTIFY] */
+  @io.notify
+  @io.persist
+  @type.quat
+  rotation = quat.create();
+
+  /** Effective front vector sent to the audio backend [READ]. */
+  @io.read
+  @type.vec3
+  front = vec3.fromValues(0, 0, 1);
+
+  /** Effective top vector sent to the audio backend [READ]. */
+  @io.read
+  @type.vec3
+  top = vec3.fromValues(0, 1, 0);
 
   /** m_normalizeAttenuationScaling (bool) [READWRITE, PERSIST] */
   @io.persist
@@ -62,7 +80,15 @@ export class AudEmitter extends AudGameObjResource
   SetPosition(front, top, position)
   {
     this.MarkPositionReceived();
-    return this.SetPositionHelper(front, top, position);
+    return this.SetPlacementFromParent(front, top, position);
+  }
+
+  /** Carbon Blue method SetPlacement -> SetPosition. */
+  @carbon.renamed("SetPlacement")
+  @impl.implemented
+  SetPlacement(front, top, position)
+  {
+    return this.SetPosition(front, top, position);
   }
 
   /** Carbon method UpdatePlacement: placement observers forward here. */

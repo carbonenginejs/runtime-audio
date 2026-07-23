@@ -11,6 +11,7 @@
 // via the statics at the bottom.
 import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
 import { CjsModel } from "@carbonenginejs/core-types/model";
+import { quat } from "@carbonenginejs/core-math/quat";
 import { vec3 } from "@carbonenginejs/core-math/vec3";
 import { SoundPrioritization } from "./SoundPrioritization.js";
 
@@ -143,6 +144,31 @@ export class AudGameObjResource extends CjsModel
 
   #waitingOneShotName = "";
 
+  #parentFront = vec3.fromValues(0, 0, 1);
+
+  #parentTop = vec3.fromValues(0, 1, 0);
+
+  #effectiveFront = vec3.fromValues(0, 0, 1);
+
+  #effectiveTop = vec3.fromValues(0, 1, 0);
+
+  #candidateFront = vec3.fromValues(0, 0, 1);
+
+  #candidateTop = vec3.fromValues(0, 1, 0);
+
+  #candidateOrientation = {
+    front: this.#candidateFront,
+    top: this.#candidateTop
+  };
+
+  #normalizedTop = vec3.fromValues(0, 1, 0);
+
+  #cross = vec3.fromValues(-1, 0, 0);
+
+  #normalizedRotation = quat.create();
+
+  #appliedRotation = quat.create();
+
   // Mirrors Carbon's two ctors: default generates an entity id; the protected
   // (AkGameObjectID) variant takes a fixed id (AudListener passes 4) so the
   // id is correct BEFORE manager registration.
@@ -179,7 +205,7 @@ export class AudGameObjResource extends CjsModel
       }
     }
     this.RegisterWwiseObject();
-    this.SetPositionHelper([1, 0, 0], [0, 1, 0], this.position);
+    this.SetPlacementFromParent([0, 0, 1], [0, 1, 0], this.position);
     if (this.eventName)
     {
       this.PostEvent(this.eventName);
@@ -309,6 +335,30 @@ export class AudGameObjResource extends CjsModel
     }
   }
 
+  /** Carbon method SeekOnEventPercent: seek a playing event owned by this object. */
+  @carbon.method
+  @impl.implemented
+  SeekOnEventPercent(playingID, percentToSeek)
+  {
+    if (!AudGameObjResource.manager?.enabled || !this.#playingEvents.has(playingID))
+    {
+      return false;
+    }
+    return AudGameObjResource.backend?.SeekOnEventPercent?.(playingID, percentToSeek) === true;
+  }
+
+  /** Carbon method SeekOnEventMs: seek a playing event owned by this object. */
+  @carbon.method
+  @impl.implemented
+  SeekOnEventMs(playingID, msToSeek)
+  {
+    if (!AudGameObjResource.manager?.enabled || !this.#playingEvents.has(playingID))
+    {
+      return false;
+    }
+    return AudGameObjResource.backend?.SeekOnEventMs?.(playingID, msToSeek) === true;
+  }
+
   /** Carbon method StopAll. */
   @carbon.method
   @impl.implemented
@@ -406,7 +456,7 @@ export class AudGameObjResource extends CjsModel
       return;
     }
     this.RegisterWwiseObject();
-    this.SetPositionHelper([1, 0, 0], [0, 1, 0], this.position);
+    this.ApplyEffectivePlacement(this.#effectiveFront, this.#effectiveTop, this.position);
     this.#culled = false;
     if (this.#waitingOneShotName && this.listenerInRange)
     {
@@ -537,18 +587,112 @@ export class AudGameObjResource extends CjsModel
     return this.#muted;
   }
 
-  /** Carbon method SetPositionHelper: position always stored; backend push (with RH->LH flip) is realization. */
+  /**
+   * Forces an orientation to unit-length, mutually perpendicular axes while
+   * preserving the supplied front direction.
+   */
+  @carbon.method
+  @impl.implemented
+  static Orthonormalize(outFront, outTop, front, top, normalizedTop, cross)
+  {
+    vec3.normalize(outFront, front);
+    vec3.normalize(normalizedTop, top);
+    vec3.cross(cross, outFront, normalizedTop);
+    vec3.cross(outTop, cross, outFront);
+    vec3.normalize(outTop, outTop);
+  }
+
+  /** Carbon method SetPlacementFromParent: stores the parent pose, resolves authored rotation, then applies it. */
   @carbon.method
   @impl.adapted
   @impl.reason("The RH->LH conversion and Wwise SetPosition happen in the backend seam; the headless graph stores the position.")
-  SetPositionHelper(front, top, positionValue)
+  SetPlacementFromParent(front, top, positionValue)
   {
+    vec3.copy(this.#parentFront, front);
+    vec3.copy(this.#parentTop, top);
+    const orientation = this.GetEffectiveOrientation();
+    return this.ApplyEffectivePlacement(orientation.front, orientation.top, positionValue);
+  }
+
+  /** Carbon method ApplyEffectivePlacement: corrects, stores, exposes, and pushes the effective pose. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("The RH->LH conversion and Wwise call remain in the backend seam; the runtime owns the effective orientation buffers.")
+  ApplyEffectivePlacement(front, top, positionValue)
+  {
+    AudGameObjResource.Orthonormalize(
+      this.#effectiveFront,
+      this.#effectiveTop,
+      front,
+      top,
+      this.#normalizedTop,
+      this.#cross);
     vec3.copy(this.position, positionValue);
+    if (this.front)
+    {
+      vec3.copy(this.front, this.#effectiveFront);
+    }
+    if (this.top)
+    {
+      vec3.copy(this.top, this.#effectiveTop);
+    }
+    if (this.rotation)
+    {
+      quat.copy(this.#appliedRotation, this.rotation);
+    }
     if (AudGameObjResource.manager?.enabled && this.#gameObjRegistered)
     {
-      AudGameObjResource.backend?.SetPosition?.(this.ID, front, top, positionValue);
+      AudGameObjResource.backend?.SetPosition?.(
+        this.ID,
+        this.#effectiveFront,
+        this.#effectiveTop,
+        this.position);
     }
     return 1;
+  }
+
+  /** Carbon method HasAuthoredRotation. */
+  @carbon.method
+  @impl.implemented
+  HasAuthoredRotation()
+  {
+    return Boolean(
+      this.rotation &&
+      (
+        this.rotation[0] !== 0 ||
+        this.rotation[1] !== 0 ||
+        this.rotation[2] !== 0 ||
+        this.rotation[3] !== 1
+      )
+    );
+  }
+
+  /** Carbon method GetEffectiveOrientation: resolves parent axes through authored rotation into owned buffers. */
+  @carbon.method
+  @impl.adapted
+  @impl.reason("Carbon returns a value struct; CarbonEngineJS returns a stable object backed by owned buffers to avoid placement-path allocations.")
+  GetEffectiveOrientation()
+  {
+    if (!this.HasAuthoredRotation() || quat.squaredLength(this.rotation) <= 0)
+    {
+      vec3.copy(this.#candidateFront, this.#parentFront);
+      vec3.copy(this.#candidateTop, this.#parentTop);
+      return this.#candidateOrientation;
+    }
+
+    quat.normalize(this.#normalizedRotation, this.rotation);
+    vec3.transformQuat(this.#candidateFront, this.#parentFront, this.#normalizedRotation);
+    vec3.transformQuat(this.#candidateTop, this.#parentTop, this.#normalizedRotation);
+    return this.#candidateOrientation;
+  }
+
+  /** Carbon method RefreshPlacementFromRotation. */
+  @carbon.method
+  @impl.implemented
+  RefreshPlacementFromRotation()
+  {
+    const orientation = this.GetEffectiveOrientation();
+    return this.ApplyEffectivePlacement(orientation.front, orientation.top, this.position);
   }
 
   /** Carbon method SetAttenuationScalingFactor: stored only when live-applied (Carbon parity). */
@@ -757,6 +901,22 @@ export class AudGameObjResource extends CjsModel
     return this.position;
   }
 
+  /** Carbon method GetFront. */
+  @carbon.method
+  @impl.implemented
+  GetFront()
+  {
+    return this.#effectiveFront;
+  }
+
+  /** Carbon method GetTop. */
+  @carbon.method
+  @impl.implemented
+  GetTop()
+  {
+    return this.#effectiveTop;
+  }
+
   /** Carbon method SetDistanceSqFromListener. */
   @carbon.method
   @impl.implemented
@@ -803,6 +963,30 @@ export class AudGameObjResource extends CjsModel
   MarkPositionReceived()
   {
     this.#hasReceivedPosition = true;
+  }
+
+  /** Whether the placement gate required by Wake/event curves has been satisfied. */
+  @impl.custom
+  @impl.reason("Carbon tests its FLT_MAX sentinel position; CarbonEngineJS tracks the equivalent state explicitly.")
+  HasReceivedPosition()
+  {
+    return this.#hasReceivedPosition;
+  }
+
+  /** Values settle hook: changing authored rotation immediately refreshes the effective placement. */
+  @impl.adapted
+  @impl.reason("CjsModel hooks are broad-safe rather than field-addressed, so a cached quaternion detects the Carbon m_authoredRotation notification.")
+  OnModified(options = {})
+  {
+    for (const parameter of this.parameters)
+    {
+      parameter?.SetGameObjectID?.(this.ID);
+    }
+    if (this.rotation && !quat.exactEquals(this.rotation, this.#appliedRotation))
+    {
+      this.RefreshPlacementFromRotation();
+    }
+    return super.OnModified(options);
   }
 
   /** Values write hook: a supplied position counts as received placement. */

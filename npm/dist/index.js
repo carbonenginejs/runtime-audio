@@ -8,7 +8,7 @@ export { AudMusicPlayer, MUSIC_GAME_OBJ_ID } from './trinity/audio/AudMusicPlaye
 export { AudParameter } from './trinity/audio/AudParameter.js';
 export { AudSettings } from './trinity/audio/AudSettings.js';
 export { AudStaticDataRepository } from './trinity/audio/AudStaticDataRepository.js';
-export { AudUIPlayer } from './trinity/audio/AudUIPlayer.js';
+export { AudUIPlayer, UI_GAME_OBJ_ID } from './trinity/audio/AudUIPlayer.js';
 export { AudioCurveSetDriver } from './trinity/audio/AudioCurveSetDriver.js';
 export { LISTENER_GAME_OBJ_ID, SoundPrioritization } from './trinity/audio/SoundPrioritization.js';
 export { StretchAudio } from './trinity/audio/StretchAudio.js';
