@@ -1,6 +1,6 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { impl, carbon, type } from '@carbonenginejs/core-types/schema';
-import { vec3 } from '@carbonenginejs/core-math/vec3';
+import { impl, carbon, type } from '@carbonenginejs/runtime-utils/schema';
+import { vec3 } from '@carbonenginejs/runtime-utils/vec3';
 import { AudGameObjResource as _AudGameObjResource } from './AudGameObjResource.js';
 import { LISTENER_GAME_OBJ_ID } from './SoundPrioritization.js';
 

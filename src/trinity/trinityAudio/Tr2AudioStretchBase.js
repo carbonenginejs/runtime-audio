@@ -2,8 +2,8 @@
 //   trinity/trinity/Audio/Tr2AudioStretchBase.h
 // Moved from runtime-trinity generated output 2026-07-18; hand-owned by
 // runtime-audio. Verify against trinityAudio/Tr2AudioStretchBase.json.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
 import { AudEmitter } from "../audio/AudEmitter.js";
 import { AudGameObjResource } from "../audio/AudGameObjResource.js";
 import { StretchAudio } from "../audio/StretchAudio.js";

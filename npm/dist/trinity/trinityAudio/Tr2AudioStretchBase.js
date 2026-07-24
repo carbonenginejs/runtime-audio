@@ -1,6 +1,6 @@
 import { identity as _identity, applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, carbon, impl, type } from '@carbonenginejs/core-types/schema';
-import { CjsModel } from '@carbonenginejs/core-types/model';
+import { io, carbon, impl, type } from '@carbonenginejs/runtime-utils/schema';
+import { CjsModel } from '@carbonenginejs/runtime-utils/model';
 import { AudEmitter as _AudEmitter } from '../audio/AudEmitter.js';
 import { AudGameObjResource as _AudGameObjResource } from '../audio/AudGameObjResource.js';
 import { StretchAudio as _StretchAudio } from '../audio/StretchAudio.js';

@@ -1,7 +1,7 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, type, impl, carbon } from '@carbonenginejs/core-types/schema';
-import { quat } from '@carbonenginejs/core-math/quat';
-import { vec3 } from '@carbonenginejs/core-math/vec3';
+import { io, type, impl, carbon } from '@carbonenginejs/runtime-utils/schema';
+import { quat } from '@carbonenginejs/runtime-utils/quat';
+import { vec3 } from '@carbonenginejs/runtime-utils/vec3';
 import { AudGameObjResource as _AudGameObjResource } from './AudGameObjResource.js';
 
 let _initProto, _initClass, _init_rotation, _init_extra_rotation, _init_front, _init_extra_front, _init_top, _init_extra_top, _init_normalizeAttenuationScaling, _init_extra_normalizeAttenuationScaling, _init_visualizationRadius, _init_extra_visualizationRadius, _init_maxNormalizedValue, _init_extra_maxNormalizedValue, _init_maxNormalizedScalingFactor, _init_extra_maxNormalizedScalingFactor, _init_minNormalizedValue, _init_extra_minNormalizedValue, _init_minNormalizedScalingFactor, _init_extra_minNormalizedScalingFactor;

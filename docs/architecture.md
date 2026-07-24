@@ -15,10 +15,10 @@ culling, and music lifecycles form one audio-domain contract.
 ## Dependency direction
 
 ```text
-core-math       core-types       runtime-const
-     \              |                 /
-      \             |                /
-       +---- runtime-audio/trinity --+
+                  runtime-utils
+                        |
+                        v
+            runtime-audio/trinity
                         |
                         v
             CjsAudioSystem + backend

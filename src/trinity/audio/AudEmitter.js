@@ -2,9 +2,9 @@
 //   audio/src/AudEmitter.h + AudEmitter.cpp
 // Hand-owned since 2026-07-18 (behavior port); the generator skips this file.
 // Verify against audio/AudEmitter.json.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { quat } from "@carbonenginejs/core-math/quat";
-import { vec3 } from "@carbonenginejs/core-math/vec3";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { quat } from "@carbonenginejs/runtime-utils/quat";
+import { vec3 } from "@carbonenginejs/runtime-utils/vec3";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 
 /** AudEmitter (audio) - the concrete content-facing emitter (ITr2AudEmitter). */

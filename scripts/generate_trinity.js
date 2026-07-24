@@ -80,7 +80,7 @@ const METHOD_ADDITIONS = new Map([
 //   UpdateSettings params) that are authored data needed to rebuild state.
 //   The divergence is an implementation decision, so each promoted field is
 //   stamped @impl.adapted + @impl.reason(...) (field-capable impl decorators,
-//   core-types 2026-07-18) in addition to the [AUTHORED] JSDoc tag.
+//   runtime-utils type/schema foundation) in addition to the [AUTHORED] JSDoc tag.
 //   m_position: set from Initialize(name, prefix, position) at
 //   AudGameObjResource.cpp:436. m_settings: supplied via
 //   AudManager::UpdateSettings before init.
@@ -112,10 +112,10 @@ function applyAuthoredImplMarkers(text, additions) {
     }
     result = result.replace(jsdocLine, `${jsdocLine}\n  @impl.adapted\n  @impl.reason("${field.reason}")`);
   }
-  if (!/import \{[^}]*\bimpl\b[^}]*\} from "@carbonenginejs\/core-types\/schema"/.test(result)) {
-    result = result.replace(/import \{ ([^}]*) \} from "@carbonenginejs\/core-types\/schema";/, (match, names) => {
+  if (!/import \{[^}]*\bimpl\b[^}]*\} from "@carbonenginejs\/runtime-utils\/schema"/.test(result)) {
+    result = result.replace(/import \{ ([^}]*) \} from "@carbonenginejs\/runtime-utils\/schema";/, (match, names) => {
       const list = [...new Set([...names.split(",").map(item => item.trim()), "impl"])].sort();
-      return `import { ${list.join(", ")} } from "@carbonenginejs/core-types/schema";`;
+      return `import { ${list.join(", ")} } from "@carbonenginejs/runtime-utils/schema";`;
     });
   }
   return result;

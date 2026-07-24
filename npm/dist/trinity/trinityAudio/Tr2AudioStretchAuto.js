@@ -1,5 +1,5 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, type, carbon, impl } from '@carbonenginejs/core-types/schema';
+import { io, type, carbon, impl } from '@carbonenginejs/runtime-utils/schema';
 import { Tr2AudioStretchBase as _Tr2AudioStretchBase } from './Tr2AudioStretchBase.js';
 
 let _initProto, _initClass, _init_impactEvent, _init_extra_impactEvent, _init_outburstEvent, _init_extra_outburstEvent, _init_stretchEvent, _init_extra_stretchEvent;

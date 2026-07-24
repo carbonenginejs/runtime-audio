@@ -1,7 +1,7 @@
 import { identity as _identity, applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, type, carbon, impl, schema } from '@carbonenginejs/core-types/schema';
-import { CjsModel } from '@carbonenginejs/core-types/model';
-import { TriExtrapolation } from '@carbonenginejs/runtime-const/graphics';
+import { io, type, carbon, impl, schema } from '@carbonenginejs/runtime-utils/schema';
+import { CjsModel } from '@carbonenginejs/runtime-utils/model';
+import { TriExtrapolation } from '@carbonenginejs/runtime-utils/graphics';
 import { AudEmitter as _AudEmitter } from './AudEmitter.js';
 import { AudEventKey as _AudEventKey } from './AudEventKey.js';
 
@@ -204,7 +204,7 @@ new class extends _identity {
     }
 
     // Carbon enum TRIEXTRAPOLATION (blue/include/ITriConstants.h:33) - shared
-    // vocabulary owned by runtime-const; aliased as a class static per the org
+    // vocabulary owned by runtime-utils; aliased as a class static per the org
     // enum rule so @schema.enum("TRIEXTRAPOLATION") resolves and users address
     // AudEventCurve.TRIEXTRAPOLATION.TRIEXT_CYCLE (TriOperator pattern).
   }];

@@ -2,8 +2,8 @@
 //   audio/src/AudioCurveSetDriver.h + AudioCurveSetDriver.cpp
 // Hand-owned since 2026-07-18 (behavior port); the generator skips this file.
 // Verify against audio/AudioCurveSetDriver.json.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 
 /** AudioCurveSetDriver (audio) - drives a curve set's time from a live RTPC value, with a fallback curve. */

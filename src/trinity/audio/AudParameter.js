@@ -2,8 +2,8 @@
 //   audio/src/AudParameter.h + AudParameter.cpp
 // Hand-owned since 2026-07-23 (behavior port); the generator skips this file.
 // Verify against audio/AudParameter.json.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 
 /** AudParameter (audio) - generated from schema shapeHash daad2621.... */

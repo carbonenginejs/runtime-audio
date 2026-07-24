@@ -1,6 +1,6 @@
 {
   "name": "@carbonenginejs/runtime-audio",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Complete CarbonEngineJS audio domain with a graph-only ./trinity entry and optional Web Audio realization.",
   "type": "module",
   "exports": {
@@ -13,9 +13,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@carbonenginejs/core-math": "^0.1.5",
-    "@carbonenginejs/core-types": "^0.12.0",
-    "@carbonenginejs/runtime-const": "^0.1.0"
+    "@carbonenginejs/runtime-utils": "^0.1.0"
   },
   "files": [
     "dist",

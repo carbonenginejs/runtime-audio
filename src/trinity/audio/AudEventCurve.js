@@ -2,9 +2,9 @@
 //   audio/src/AudEventCurve.h + AudEventCurve.cpp
 // Hand-owned since 2026-07-18 (behavior port); the generator skips this file.
 // Verify against audio/AudEventCurve.json.
-import { carbon, impl, io, schema, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
-import { TriExtrapolation } from "@carbonenginejs/runtime-const/graphics";
+import { carbon, impl, io, schema, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
+import { TriExtrapolation } from "@carbonenginejs/runtime-utils/graphics";
 import { AudEmitter } from "./AudEmitter.js";
 import { AudEventKey } from "./AudEventKey.js";
 
@@ -286,7 +286,7 @@ export class AudEventCurve extends CjsModel
   }
 
   // Carbon enum TRIEXTRAPOLATION (blue/include/ITriConstants.h:33) - shared
-  // vocabulary owned by runtime-const; aliased as a class static per the org
+  // vocabulary owned by runtime-utils; aliased as a class static per the org
   // enum rule so @schema.enum("TRIEXTRAPOLATION") resolves and users address
   // AudEventCurve.TRIEXTRAPOLATION.TRIEXT_CYCLE (TriOperator pattern).
   static TRIEXTRAPOLATION = TriExtrapolation;

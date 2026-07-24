@@ -2,7 +2,7 @@
 //   trinity/trinity/Audio/Tr2AudioStretchAuto.h
 // Moved from runtime-trinity generated output 2026-07-18; hand-owned by
 // runtime-audio. Verify against trinityAudio/Tr2AudioStretchAuto.json.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
 import { Tr2AudioStretchBase } from "./Tr2AudioStretchBase.js";
 
 /** Tr2AudioStretchAuto (trinityAudio) - generated from schema shapeHash 66b9fbdd.... */

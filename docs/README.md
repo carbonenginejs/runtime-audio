@@ -31,7 +31,7 @@ needed.
 ## Where it fits
 
 ```text
-core-math + core-types + runtime-const
+             runtime-utils
                   |
                   v
        runtime-audio/trinity

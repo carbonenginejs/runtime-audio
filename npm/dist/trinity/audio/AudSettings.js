@@ -1,6 +1,6 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, type } from '@carbonenginejs/core-types/schema';
-import { CjsModel } from '@carbonenginejs/core-types/model';
+import { io, type } from '@carbonenginejs/runtime-utils/schema';
+import { CjsModel } from '@carbonenginejs/runtime-utils/model';
 
 let _initClass, _init_baseSoundbankPath, _init_extra_baseSoundbankPath, _init_soundbankLanguage, _init_extra_soundbankLanguage, _init_spatialAudioDeviceName, _init_extra_spatialAudioDeviceName, _init_stereoAudioDeviceName, _init_extra_stereoAudioDeviceName, _init_applicationName, _init_extra_applicationName, _init_essentialPath, _init_extra_essentialPath, _init_spatialAudioEnabled, _init_extra_spatialAudioEnabled;
 

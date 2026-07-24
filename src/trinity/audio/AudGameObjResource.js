@@ -9,10 +9,10 @@
 // Wake/Cull no-op. The realization layer later supplies `manager` (enabled
 // state, bank statuses, prioritization) and `backend` (Wwise-shaped calls)
 // via the statics at the bottom.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
-import { quat } from "@carbonenginejs/core-math/quat";
-import { vec3 } from "@carbonenginejs/core-math/vec3";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
+import { quat } from "@carbonenginejs/runtime-utils/quat";
+import { vec3 } from "@carbonenginejs/runtime-utils/vec3";
 import { SoundPrioritization } from "./SoundPrioritization.js";
 
 // Wwise AK_INVALID_PLAYING_ID.
@@ -991,7 +991,7 @@ export class AudGameObjResource extends CjsModel
 
   /** Values write hook: a supplied position counts as received placement. */
   @impl.adapted
-  @impl.reason("Carbon marks m_hasReceivedPosition in Initialize/SetPosition only; CarbonEngineJS also accepts it at values write time (the cooperative pipeline holds per-field knowledge only here - hooks are broad-safe and prop-less, core-types >= 0.12.0) so `from({ position })` emitters can Wake.")
+  @impl.reason("Carbon marks m_hasReceivedPosition in Initialize/SetPosition only; CarbonEngineJS also accepts it at values write time because the cooperative runtime-utils model pipeline holds per-field knowledge only here, so `from({ position })` emitters can Wake.")
   SetValues(values = {}, options = {})
   {
     const result = super.SetValues(values, options);

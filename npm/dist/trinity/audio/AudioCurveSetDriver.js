@@ -1,6 +1,6 @@
 import { applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, type, carbon, impl } from '@carbonenginejs/core-types/schema';
-import { CjsModel } from '@carbonenginejs/core-types/model';
+import { io, type, carbon, impl } from '@carbonenginejs/runtime-utils/schema';
+import { CjsModel } from '@carbonenginejs/runtime-utils/model';
 import { AudGameObjResource as _AudGameObjResource } from './AudGameObjResource.js';
 
 let _initProto, _initClass, _init_fallbackCurve, _init_extra_fallbackCurve, _init_name, _init_extra_name, _init_audioParameterValue, _init_extra_audioParameterValue, _init_audioParameterName, _init_extra_audioParameterName;

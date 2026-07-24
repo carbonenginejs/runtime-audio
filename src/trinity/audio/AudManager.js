@@ -7,8 +7,8 @@
 // init, RenderAudio, and device concerns route through the backend seam
 // (AudGameObjResource.backend); state, bank tracking, deferred-event flush,
 // monitored-parameter refcounts, and prioritization wiring are pure logic.
-import { carbon, impl, io, type } from "@carbonenginejs/core-types/schema";
-import { CjsModel } from "@carbonenginejs/core-types/model";
+import { carbon, impl, io, type } from "@carbonenginejs/runtime-utils/schema";
+import { CjsModel } from "@carbonenginejs/runtime-utils/model";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 import { LISTENER_GAME_OBJ_ID, SoundPrioritization } from "./SoundPrioritization.js";
 

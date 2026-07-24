@@ -2,8 +2,8 @@
 //   audio/src/AudListener.h + AudListener.cpp
 // Hand-owned since 2026-07-18 (behavior port); the generator skips this file.
 // Verify against audio/AudListener.json.
-import { carbon, impl, type } from "@carbonenginejs/core-types/schema";
-import { vec3 } from "@carbonenginejs/core-math/vec3";
+import { carbon, impl, type } from "@carbonenginejs/runtime-utils/schema";
+import { vec3 } from "@carbonenginejs/runtime-utils/vec3";
 import { AudGameObjResource } from "./AudGameObjResource.js";
 import { LISTENER_GAME_OBJ_ID } from "./SoundPrioritization.js";
 

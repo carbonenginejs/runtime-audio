@@ -1,5 +1,5 @@
 import { identity as _identity, applyDecs2311 as _applyDecs2311 } from '../../_virtual/_rollupPluginBabelHelpers.js';
-import { io, carbon, impl, type } from '@carbonenginejs/core-types/schema';
+import { io, carbon, impl, type } from '@carbonenginejs/runtime-utils/schema';
 import { AudEmitter as _AudEmitter } from './AudEmitter.js';
 
 let _initProto, _initClass, _init_eventSenderCallback, _init_extra_eventSenderCallback;
