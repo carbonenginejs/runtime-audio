@@ -1,5 +1,9 @@
 # @carbonenginejs/runtime-audio
 
+> **Retired donor.** Maintained source now lives in
+> `@carbonenginejs/runtime/audio` under `runtime/src/audio`. This checkout is
+> historical evidence only; do not install or publish it.
+
 Complete CarbonEngineJS audio domain with a graph-only `./trinity` entry and
 optional Web Audio realization.
 

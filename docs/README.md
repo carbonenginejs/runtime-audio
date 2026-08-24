@@ -1,5 +1,9 @@
 # Runtime audio documentation
 
+> **Historical donor documentation.** Current audio documentation is in
+> `runtime/docs/audio` and current source is exported by
+> `@carbonenginejs/runtime/audio`.
+
 Status: Evolving  
 Scope: `@carbonenginejs/runtime-audio`  
 Audience: Runtime authors, browser application authors, and integrators  
